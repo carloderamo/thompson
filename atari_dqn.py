@@ -1,18 +1,15 @@
 import argparse
 import datetime
 import os
-import sys
 
 import numpy as np
 
 from convnet import ConvNet
 from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
     WeightedDQN
-from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
-from mushroom.utils.callbacks import CollectSummary
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
@@ -91,6 +88,7 @@ def experiment():
                               "for Weighted DQN and Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
+    arg_alg.add_argument("--weighted-policy", action='store_true')
     arg_alg.add_argument("--history-length", type=int, default=4,
                          help='Number of frames composing a state.')
     arg_alg.add_argument("--target-update-frequency", type=int, default=10000,
@@ -142,7 +140,6 @@ def experiment():
 
     args = parser.parse_args()
 
-
     scores = list()
 
     # Evaluation of the model provided by the user.
@@ -160,23 +157,23 @@ def experiment():
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
-        approximator_params = dict(name='test',
-                                   load_path=args.load_path,
-                                   optimizer={'name': args.optimizer,
-                                              'lr': args.learning_rate,
-                                              'decay': args.decay,
-                                              'epsilon': args.epsilon},
-                                   width=args.screen_width,
-                                   height=args.screen_height,
-                                   history_length=args.history_length)
-        approximator = Regressor(
-            ConvNet,
+        approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.action_space.n,),
             n_actions=mdp.action_space.n,
             input_preprocessor=[Scaler(mdp.observation_space.high)],
-            params=approximator_params
+            params={'name': 'test',
+                    'load_path': args.load_path,
+                    'optimizer': {'name': args.optimizer,
+                                  'lr': args.learning_rate,
+                                  'decay': args.decay,
+                                  'epsilon': args.epsilon},
+                    'width': args.screen_width,
+                    'height': args.screen_height,
+                    'history_length': args.history_length}
         )
+
+        approximator = ConvNet
 
         # Agent
         algorithm_params = dict(
@@ -186,7 +183,8 @@ def experiment():
             no_op_action_value=args.no_op_action_value
         )
         fit_params = dict()
-        agent_params = {'algorithm_params': algorithm_params,
+        agent_params = {'approximator_params': approximator_params,
+                        'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
         agent = DQN(approximator, pi, mdp.gamma, agent_params)
 
@@ -207,9 +205,6 @@ def experiment():
         # Summary folder
         folder_name = './logs/atari_' + args.algorithm + '_' + args.name +\
             '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-
-        #with open(folder_name+'/args.txt', 'w') as fp:
-            #fp.write('\n'.join(sys.argv[1:]))
 
         # Settings
         if args.debug:
@@ -244,62 +239,30 @@ def experiment():
                        action_space=mdp.action_space)
 
         # Approximator
-        approximator_params_train = dict(name='train',
-                                         folder_name=folder_name,
-                                         optimizer={'name': args.optimizer,
-                                                    'lr': args.learning_rate,
-                                                    'decay': args.decay,
-                                                    'epsilon': args.epsilon},
-                                         width=args.screen_width,
-                                         height=args.screen_height,
-                                         history_length=args.history_length)
-        # Target approximator
-        approximator_params_target = dict(name='target',
-                                          folder_name=folder_name,
-                                          optimizer={'name': args.optimizer,
-                                                     'lr': args.learning_rate,
-                                                     'decay': args.decay,
-                                                     'epsilon': args.epsilon},
-                                          width=args.screen_width,
-                                          height=args.screen_height,
-                                          history_length=args.history_length)
-
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
-        approximator = Regressor(ConvNet,
-                                 input_shape=input_shape,
-                                 output_shape=(mdp.action_space.n,),
-                                 n_actions=mdp.action_space.n,
-                                 input_preprocessor=[Scaler(
-                                     mdp.observation_space.high)],
-                                 params=approximator_params_train)
-        target_approximator = Regressor(ConvNet,
-                                        input_shape=input_shape,
-                                        output_shape=(mdp.action_space.n,),
-                                        n_actions=mdp.action_space.n,
-                                        n_models=args.n_approximators,
-                                        input_preprocessor=[Scaler(
-                                            mdp.observation_space.high)],
-                                        params=approximator_params_target)
+        approximator_params = dict(
+            input_shape=input_shape,
+            output_shape=(mdp.action_space.n,),
+            n_actions=mdp.action_space.n,
+            input_preprocessor=[Scaler(
+                mdp.observation_space.high)],
+            params={'folder_name': folder_name,
+                    'optimizer': {'name': args.optimizer,
+                                  'lr': args.learning_rate,
+                                  'decay': args.decay,
+                                  'epsilon': args.epsilon},
+                    'width': args.screen_width,
+                    'height': args.screen_height,
+                    'history_length': args.history_length}
+        )
 
-        # Initialize target approximator weights with the weights of the
-        # approximator to fit.
-        if args.algorithm in ['dqn', 'ddqn']:
-            target_approximator.model.set_weights(
-                approximator.model.get_weights())
-        elif args.algorithm in ['wdqn', 'adqn']:
-            assert args.n_approximators > 1
-
-            for i in xrange(args.n_approximators):
-                target_approximator.model[i].set_weights(
-                    approximator.model.get_weights())
-        else:
-            raise ValueError
+        approximator = ConvNet
 
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
-            target_approximator=target_approximator,
+            weighted_policy=args.weighted_policy,
             n_approximators=args.n_approximators,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
@@ -310,7 +273,8 @@ def experiment():
             no_op_action_value=args.no_op_action_value
         )
         fit_params = dict()
-        agent_params = {'algorithm_params': algorithm_params,
+        agent_params = {'approximator_params': approximator_params,
+                        'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
 
         if args.algorithm == 'dqn':
@@ -323,28 +287,37 @@ def experiment():
             agent = AveragedDQN(approximator, pi, mdp.gamma, agent_params)
 
         # Algorithm
-        collect_summary = CollectSummary(folder_name)
-        core = Core(agent, mdp, callbacks=[collect_summary])
+        core = Core(agent, mdp)
         core_test = Core(agent, mdp)
 
         # RUN
 
         # Fill replay memory with random dataset
         print_epoch(0)
+        if args.algorithm == 'wdqn' and args.weighted_policy:
+            agent._weighted_policy = False
         core.learn(n_iterations=1, how_many=initial_replay_size,
                    n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
 
         if args.save:
-            approximator.model.save()
+            agent.approximator.model.save()
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
+        if args.algorithm == 'ddqn':
+            agent.policy.set_q(agent.target_approximator)
         dataset = core_test.evaluate(how_many=test_samples,
                                      iterate_over='samples',
                                      render=args.render,
                                      quiet=args.quiet)
+        if args.algorithm == 'wdqn' and args.weighted_policy:
+            agent._weighted_policy = True
         scores.append(get_stats(dataset))
+        if args.algorithm == 'ddqn':
+            agent.policy.set_q(agent.approximator)
+
+        np.save(folder_name + '/scores.npy', scores)
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
             print_epoch(n_epoch)
             print '- Learning:'
@@ -358,20 +331,28 @@ def experiment():
                        quiet=args.quiet)
 
             if args.save:
-                approximator.model.save()
+                agent.approximator.model.save()
 
             print '- Evaluation:'
             # evaluation step
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
+            if args.algorithm == 'ddqn':
+                agent.policy.set_q(agent.target_approximator)
+            if args.algorithm == 'wdqn' and args.weighted_policy:
+                agent._weighted_policy = False
             dataset = core_test.evaluate(how_many=test_samples,
                                          iterate_over='samples',
                                          render=args.render,
                                          quiet=args.quiet)
+            if args.algorithm == 'wdqn' and args.weighted_policy:
+                agent._weighted_policy = True
             scores.append(get_stats(dataset))
+            if args.algorithm == 'ddqn':
+                agent.policy.set_q(agent.approximator)
 
-            np.save(folder_name+'/scores.npy', scores)
+            np.save(folder_name + '/scores.npy', scores)
 
     return scores
 

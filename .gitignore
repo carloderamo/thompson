@@ -1,0 +1,8 @@
+build/
+dist/
+mushroom.egg-info/
+.idea/
+*.pyc
+*.xml
+logs/
+*.h5
