@@ -10,7 +10,7 @@ from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
-from mushroom.utils.dataset import compute_scores
+from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
 
@@ -29,12 +29,11 @@ def print_epoch(epoch):
     print '----------------------------------------------------------------'
 
 
-def get_stats(dataset):
-    score = compute_scores(dataset)
-    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          ' games_completed: %d' % score)
+def get_stats(dataset, gamma):
+    J = np.mean(compute_J(dataset, gamma))
+    print('J: %f' % J)
 
-    return score
+    return J
 
 
 def experiment():
@@ -217,6 +216,7 @@ def experiment():
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
+        mdp = GridWorldPixelGenerator('grid.txt')
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
