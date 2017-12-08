@@ -8,7 +8,8 @@ from convnet import ConvNet
 from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
     WeightedDQN
 from mushroom.core.core import Core
-from mushroom.environments import *
+from mushroom.environments import Atari
+from grid_world import GridWorldPixelGenerator
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
