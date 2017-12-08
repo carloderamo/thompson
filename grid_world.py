@@ -125,13 +125,12 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
                                                       start, goal)
 
     def _step(self, state, action):
-        c = self._grid[state[0]][state[1]]
-        if c == self._symbols['G']:
+        new_state = np.array(state)
+        if np.array_equal(new_state, self._goal):
             reward = 5
             absorbing = True
             success = True
         else:
-            new_state = np.array(state)
             if action == 1:
                 new_state[0] -= 1
             elif action == 2:
@@ -141,7 +140,9 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
             elif action == 4:
                 new_state[1] += 1
             else:
-                return new_state, 0, False, {'success': True}
+                reward = np.random.choice([-12, 10])
+
+                return new_state, reward, False, {'success': True}
 
             c = self._grid[new_state[0]][new_state[1]]
             if c == self._symbols['*']:
