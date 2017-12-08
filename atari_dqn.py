@@ -88,7 +88,6 @@ def experiment():
                               "for Weighted DQN and Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
-    arg_alg.add_argument("--weighted-policy", action='store_true')
     arg_alg.add_argument("--history-length", type=int, default=4,
                          help='Number of frames composing a state.')
     arg_alg.add_argument("--target-update-frequency", type=int, default=10000,
@@ -100,9 +99,6 @@ def experiment():
     arg_alg.add_argument("--train-frequency", type=int, default=4,
                          help='Number of learning steps before each fit of the'
                               'neural network.')
-    arg_alg.add_argument("--fit-steps", type=int, default=1,
-                         help='Number of gradient descent steps of each fit of'
-                              'the neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
                          help='Total number of learning steps.')
     arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
@@ -150,27 +146,22 @@ def experiment():
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
-        pi = EpsGreedy(epsilon=epsilon_test,
-                       observation_space=mdp.observation_space,
-                       action_space=mdp.action_space)
+        pi = EpsGreedy(epsilon=epsilon_test)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
         approximator_params = dict(
             input_shape=input_shape,
-            output_shape=(mdp.action_space.n,),
-            n_actions=mdp.action_space.n,
-            input_preprocessor=[Scaler(mdp.observation_space.high)],
-            params={'name': 'test',
-                    'load_path': args.load_path,
-                    'optimizer': {'name': args.optimizer,
-                                  'lr': args.learning_rate,
-                                  'decay': args.decay,
-                                  'epsilon': args.epsilon},
-                    'width': args.screen_width,
-                    'height': args.screen_height,
-                    'history_length': args.history_length}
+            output_shape=(mdp.info.action_space.n,),
+            n_actions=mdp.info.action_space.n,
+            input_preprocessor=[Scaler(mdp.info.observation_space.high[0, 0])],
+            name='test',
+            load_path=args.load_path,
+            optimizer={'name': args.optimizer,
+                       'lr': args.learning_rate,
+                       'decay': args.decay,
+                       'epsilon': args.epsilon}
         )
 
         approximator = ConvNet
@@ -186,7 +177,7 @@ def experiment():
         agent_params = {'approximator_params': approximator_params,
                         'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
-        agent = DQN(approximator, pi, mdp.gamma, agent_params)
+        agent = DQN(approximator, pi, mdp.info, agent_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
@@ -194,8 +185,7 @@ def experiment():
         # Evaluate model
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
-        dataset = core_test.evaluate(how_many=args.test_samples,
-                                     iterate_over='samples',
+        dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
         get_stats(dataset)
@@ -234,27 +224,22 @@ def experiment():
                                        n=args.final_exploration_frame)
         epsilon_test = Parameter(value=args.test_exploration_rate)
         epsilon_random = Parameter(value=1)
-        pi = EpsGreedy(epsilon=epsilon_random,
-                       observation_space=mdp.observation_space,
-                       action_space=mdp.action_space)
+        pi = EpsGreedy(epsilon=epsilon_random)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
         approximator_params = dict(
             input_shape=input_shape,
-            output_shape=(mdp.action_space.n,),
-            n_actions=mdp.action_space.n,
+            output_shape=(mdp.info.action_space.n,),
+            n_actions=mdp.info.action_space.n,
             input_preprocessor=[Scaler(
-                mdp.observation_space.high)],
-            params={'folder_name': folder_name,
-                    'optimizer': {'name': args.optimizer,
-                                  'lr': args.learning_rate,
-                                  'decay': args.decay,
-                                  'epsilon': args.epsilon},
-                    'width': args.screen_width,
-                    'height': args.screen_height,
-                    'history_length': args.history_length}
+                mdp.info.observation_space.high[0, 0])],
+            folder_name=folder_name,
+            optimizer={'name': args.optimizer,
+                       'lr': args.learning_rate,
+                       'decay': args.decay,
+                       'epsilon': args.epsilon}
         )
 
         approximator = ConvNet
@@ -262,7 +247,6 @@ def experiment():
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
-            weighted_policy=args.weighted_policy,
             n_approximators=args.n_approximators,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
@@ -278,13 +262,13 @@ def experiment():
                         'fit_params': fit_params}
 
         if args.algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.gamma, agent_params)
+            agent = DQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
+            agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.gamma, agent_params)
+            agent = WeightedDQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'adqn':
-            agent = AveragedDQN(approximator, pi, mdp.gamma, agent_params)
+            agent = AveragedDQN(approximator, pi, mdp.info, agent_params)
 
         # Algorithm
         core = Core(agent, mdp)
@@ -294,10 +278,8 @@ def experiment():
 
         # Fill replay memory with random dataset
         print_epoch(0)
-        if args.algorithm == 'wdqn' and args.weighted_policy:
-            agent._weighted_policy = False
-        core.learn(n_iterations=1, how_many=initial_replay_size,
-                   n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
+        core.learn(n_steps=initial_replay_size,
+                   n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
         if args.save:
             agent.approximator.model.save()
@@ -307,12 +289,9 @@ def experiment():
         mdp.set_episode_end(ends_at_life=False)
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
-        dataset = core_test.evaluate(how_many=test_samples,
-                                     iterate_over='samples',
+        dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        if args.algorithm == 'wdqn' and args.weighted_policy:
-            agent._weighted_policy = True
         scores.append(get_stats(dataset))
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.approximator)
@@ -324,10 +303,8 @@ def experiment():
             # learning step
             pi.set_epsilon(epsilon)
             mdp.set_episode_end(ends_at_life=True)
-            core.learn(n_iterations=evaluation_frequency / train_frequency,
-                       how_many=train_frequency,
-                       n_fit_steps=args.fit_steps,
-                       iterate_over='samples',
+            core.learn(n_steps=evaluation_frequency,
+                       n_steps_per_fit=train_frequency,
                        quiet=args.quiet)
 
             if args.save:
@@ -340,14 +317,9 @@ def experiment():
             core_test.reset()
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.target_approximator)
-            if args.algorithm == 'wdqn' and args.weighted_policy:
-                agent._weighted_policy = False
-            dataset = core_test.evaluate(how_many=test_samples,
-                                         iterate_over='samples',
+            dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            if args.algorithm == 'wdqn' and args.weighted_policy:
-                agent._weighted_policy = True
             scores.append(get_stats(dataset))
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.approximator)
