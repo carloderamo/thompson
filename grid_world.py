@@ -125,7 +125,7 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
                                                       start, goal)
 
     def _step(self, state, action):
-        c = self._grid[new_state[0]][new_state[1]]
+        c = self._grid[state[0]][state[1]]
         if c == self._symbols['G']:
             reward = 5
             absorbing = True
