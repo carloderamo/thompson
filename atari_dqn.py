@@ -3,6 +3,7 @@ import datetime
 import os
 
 import numpy as np
+import tensorflow as tf
 
 from convnet import ConvNet
 from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
@@ -37,7 +38,7 @@ def get_stats(dataset, gamma):
     return J
 
 
-def experiment():
+def experiment(algorithm):
     np.random.seed()
 
     # Argument parser
@@ -77,12 +78,6 @@ def experiment():
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn', 'adqn'],
-                         default='dqn',
-                         help='Name of the algorithm. dqn stands for standard'
-                              'DQN, ddqn stands for Double DQN, wdqn'
-                              'stands for Weighted DQN and adqn stands for'
-                              'Averaged DQN.')
     arg_alg.add_argument("--n-approximators", type=int, default=1,
                          help="Number of approximators used in the ensemble"
                               "for Weighted DQN and Averaged DQN.")
@@ -193,8 +188,8 @@ def experiment():
         # DQN learning run
 
         # Summary folder
-        folder_name = './logs/atari_' + args.algorithm + '_' + args.name +\
-            '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        folder_name = './logs/' + algorithm + '/' +\
+                      datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
         # Settings
         if args.debug:
@@ -217,7 +212,9 @@ def experiment():
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
-        mdp = GridWorldPixelGenerator('grid.txt', height_window=args.screen_height, width_window=args.screen_width)
+        mdp = GridWorldPixelGenerator('grid.txt',
+                                      height_window=args.screen_height,
+                                      width_window=args.screen_width)
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -262,13 +259,13 @@ def experiment():
                         'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
 
-        if args.algorithm == 'dqn':
+        if algorithm == 'dqn':
             agent = DQN(approximator, pi, mdp.info, agent_params)
-        elif args.algorithm == 'ddqn':
+        elif algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
-        elif args.algorithm == 'wdqn':
+        elif algorithm == 'wdqn':
             agent = WeightedDQN(approximator, pi, mdp.info, agent_params)
-        elif args.algorithm == 'adqn':
+        elif algorithm == 'adqn':
             agent = AveragedDQN(approximator, pi, mdp.info, agent_params)
 
         # Algorithm
@@ -288,13 +285,13 @@ def experiment():
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
-        if args.algorithm == 'ddqn':
+        if algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
         scores.append(get_stats(dataset, mdp.info.gamma))
-        if args.algorithm == 'ddqn':
+        if algorithm == 'ddqn':
             agent.policy.set_q(agent.approximator)
 
         np.save(folder_name + '/scores.npy', scores)
@@ -316,13 +313,13 @@ def experiment():
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
-            if args.algorithm == 'ddqn':
+            if algorithm == 'ddqn':
                 agent.policy.set_q(agent.target_approximator)
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
             scores.append(get_stats(dataset, mdp.info.gamma))
-            if args.algorithm == 'ddqn':
+            if algorithm == 'ddqn':
                 agent.policy.set_q(agent.approximator)
 
             np.save(folder_name + '/scores.npy', scores)
@@ -331,4 +328,13 @@ def experiment():
 
 
 if __name__ == '__main__':
-    experiment()
+    algs = ['dqn', 'ddqn', 'wdqn']
+    n_experiments = 10
+
+    for a in algs:
+        s = list()
+        for i in xrange(n_experiments):
+            s.append(experiment(a))
+            tf.reset_default_graph()
+
+        np.save('logs/' + a + '/scores.npy', s)

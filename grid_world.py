@@ -125,36 +125,42 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
                                                       start, goal)
 
     def _step(self, state, action):
-        new_state = np.array(state)
-        if action == 1:
-            new_state[0] -= 1
-        elif action == 2:
-            new_state[0] += 1
-        elif action == 3:
-            new_state[1] -= 1
-        elif action == 4:
-            new_state[1] += 1
-        else:
-            return new_state, 0, False, {'success': True}
-
         c = self._grid[new_state[0]][new_state[1]]
-        if c == self._symbols['*']:
-            reward = -10
-            absorbing = True
-            success = True
-        elif c in [self._symbols['.'], self._symbols['S']]:
-            reward = np.random.choice([-12, 10])
-            absorbing = False
-            success = True
-        elif c == self._symbols['G']:
+        if c == self._symbols['G']:
             reward = 5
             absorbing = True
             success = True
-        elif c == self._symbols['#']:
-            reward = np.random.choice([-12, 10])
-            absorbing = False
+        else:
             new_state = np.array(state)
-            success = False
+            if action == 1:
+                new_state[0] -= 1
+            elif action == 2:
+                new_state[0] += 1
+            elif action == 3:
+                new_state[1] -= 1
+            elif action == 4:
+                new_state[1] += 1
+            else:
+                return new_state, 0, False, {'success': True}
+
+            c = self._grid[new_state[0]][new_state[1]]
+            if c == self._symbols['*']:
+                reward = -10
+                absorbing = True
+                success = True
+            elif c in [self._symbols['.'], self._symbols['S']]:
+                reward = np.random.choice([-12, 10])
+                absorbing = False
+                success = True
+            elif c == self._symbols['G']:
+                reward = np.random.choice([-12, 10])
+                absorbing = False
+                success = True
+            elif c == self._symbols['#']:
+                reward = np.random.choice([-12, 10])
+                absorbing = False
+                new_state = np.array(state)
+                success = False
 
         return new_state, reward, absorbing, {'success': success}
 
