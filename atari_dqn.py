@@ -38,7 +38,7 @@ def get_stats(dataset, gamma):
     return J
 
 
-def experiment(algorithm):
+def experiment(algorithm, n_approximators):
     np.random.seed()
 
     # Argument parser
@@ -78,9 +78,6 @@ def experiment(algorithm):
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--n-approximators", type=int, default=1,
-                         help="Number of approximators used in the ensemble"
-                              "for Weighted DQN and Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -245,7 +242,7 @@ def experiment(algorithm):
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
-            n_approximators=args.n_approximators,
+            n_approximators=n_approximators,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
@@ -329,12 +326,13 @@ def experiment(algorithm):
 
 if __name__ == '__main__':
     algs = ['dqn', 'ddqn', 'wdqn']
+    n_apprx = [1, 1, 10]
     n_experiments = 10
 
-    for a in algs:
+    for i, a in enumerate(algs):
         s = list()
         for i in xrange(n_experiments):
-            s.append(experiment(a))
+            s.append(experiment(a, n_apprx[i]))
             tf.reset_default_graph()
 
         np.save('logs/' + a + '/scores.npy', s)
