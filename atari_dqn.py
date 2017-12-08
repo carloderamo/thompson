@@ -187,7 +187,7 @@ def experiment():
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset)
+        get_stats(dataset, mdp.info.gamma)
     else:
         # DQN learning run
 
@@ -292,7 +292,7 @@ def experiment():
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        scores.append(get_stats(dataset))
+        scores.append(get_stats(dataset, mdp.info.gamma))
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.approximator)
 
@@ -320,7 +320,7 @@ def experiment():
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            scores.append(get_stats(dataset))
+            scores.append(get_stats(dataset, mdp.info.gamma))
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.approximator)
 
