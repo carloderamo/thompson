@@ -217,7 +217,7 @@ def experiment():
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
-        mdp = GridWorldPixelGenerator('grid.txt')
+        mdp = GridWorldPixelGenerator('grid.txt', height_window=args.screen_height, width_window=args.screen_width)
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
