@@ -5,16 +5,16 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from convnet import ConvNet
-from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
-    WeightedDQN
 from mushroom.core.core import Core
 from mushroom.environments import Atari
 from grid_world import GridWorldPixelGenerator
-from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
+
+from convnet import ConvNet
+from dqn import DQN, DoubleDQN, WeightedDQN
+from policy import BootPolicy
+
 
 """
 This script can be used to run Atari experiments with DQN.
@@ -93,16 +93,6 @@ def experiment(algorithm, n_approximators):
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
-                         help='Number of steps until the exploration rate stops'
-                              'decreasing.')
-    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
-                         help='Initial value of the exploration rate.')
-    arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
-                         help='Final value of the exploration rate. When it'
-                              'reaches this values, it stays constant.')
-    arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
-                         help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
@@ -137,8 +127,7 @@ def experiment(algorithm, n_approximators):
                     ends_at_life=True)
 
         # Policy
-        epsilon_test = Parameter(value=args.test_exploration_rate)
-        pi = EpsGreedy(epsilon=epsilon_test)
+        pi = BootPolicy(n_approximators)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -147,6 +136,7 @@ def experiment(algorithm, n_approximators):
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
+            n_approximators=n_approximators,
             input_preprocessor=[Scaler(mdp.info.observation_space.high[0, 0])],
             name='test',
             load_path=args.load_path,
@@ -161,6 +151,7 @@ def experiment(algorithm, n_approximators):
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
+            n_approximators=n_approximators,
             history_length=args.history_length,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value
@@ -175,7 +166,6 @@ def experiment(algorithm, n_approximators):
         core_test = Core(agent, mdp)
 
         # Evaluate model
-        pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
@@ -214,12 +204,7 @@ def experiment(algorithm, n_approximators):
                                       width_window=args.screen_width)
 
         # Policy
-        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
-                                       min_value=args.final_exploration_rate,
-                                       n=args.final_exploration_frame)
-        epsilon_test = Parameter(value=args.test_exploration_rate)
-        epsilon_random = Parameter(value=1)
-        pi = EpsGreedy(epsilon=epsilon_random)
+        pi = BootPolicy(n_approximators)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -228,6 +213,7 @@ def experiment(algorithm, n_approximators):
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
+            n_approximators=n_approximators,
             input_preprocessor=[Scaler(
                 mdp.info.observation_space.high[0, 0])],
             folder_name=folder_name,
@@ -242,10 +228,10 @@ def experiment(algorithm, n_approximators):
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
-            n_approximators=n_approximators,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
+            n_approximators=n_approximators,
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
@@ -262,8 +248,6 @@ def experiment(algorithm, n_approximators):
             agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
         elif algorithm == 'wdqn':
             agent = WeightedDQN(approximator, pi, mdp.info, agent_params)
-        elif algorithm == 'adqn':
-            agent = AveragedDQN(approximator, pi, mdp.info, agent_params)
 
         # Algorithm
         core = Core(agent, mdp)
@@ -280,7 +264,6 @@ def experiment(algorithm, n_approximators):
             agent.approximator.model.save()
 
         # Evaluate initial policy
-        pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         if algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
@@ -296,7 +279,6 @@ def experiment(algorithm, n_approximators):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
-            pi.set_epsilon(epsilon)
             mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
@@ -307,7 +289,6 @@ def experiment(algorithm, n_approximators):
 
             print '- Evaluation:'
             # evaluation step
-            pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
             if algorithm == 'ddqn':
@@ -326,7 +307,7 @@ def experiment(algorithm, n_approximators):
 
 if __name__ == '__main__':
     algs = ['dqn', 'ddqn', 'wdqn']
-    n_apprx = [1, 1, 10]
+    n_apprx = [10]
     n_experiments = 10
 
     for i, a in enumerate(algs):

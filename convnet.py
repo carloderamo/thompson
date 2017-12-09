@@ -32,11 +32,12 @@ class ConvNet:
                                                              shape=w[i].shape))
                         self._w.append(w[i].assign(self._target_w[i]))
 
-    def predict(self, s, features=False):
-        if not features:
+    def predict(self, s, a=None):
+        if a is None:
             return self._session.run(self.q, feed_dict={self._x: s})
         else:
-            return self._session.run(self._features, feed_dict={self._x: s})
+            return self._session.run(self._q_acted, feed_dict={self._x: s,
+                                                               self._action: a})
 
     def fit(self, s, a, q):
         summaries, _ = self._session.run(
@@ -120,21 +121,35 @@ class ConvNet:
                 name='_features'
             )
             self.q = tf.layers.dense(
-                self._features, convnet_pars['output_shape'][0],
+                self._features,
+                convnet_pars['output_shape'][0] * convnet_pars[
+                    'n_approximators'],
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 bias_initializer=tf.glorot_uniform_initializer(),
                 name='q'
             )
 
-            self._target_q = tf.placeholder('float32', [None], name='target_q')
+            self._target_q = tf.placeholder(
+                'float32',
+                [None, convnet_pars['n_approximators']],
+                name='target_q'
+            )
             self._action = tf.placeholder('uint8', [None], name='action')
 
             action_one_hot = tf.one_hot(self._action,
                                         convnet_pars['output_shape'][0],
                                         name='action_one_hot')
-            self._q_acted = tf.reduce_sum(self.q * action_one_hot,
-                                          axis=1,
-                                          name='q_acted')
+
+            expanded_action_one_hot = tf.reshape(
+                tf.tile(action_one_hot, [1, convnet_pars['n_approximators']]),
+                [1, -1]
+            )[0]
+            q_idxs = tf.reshape(tf.where(expanded_action_one_hot > 0),
+                                [1, -1])[0]
+            reshaped_q = tf.reshape(self.q, [1, -1])[0]
+
+            self._q_acted = tf.reshape(tf.gather_nd(reshaped_q, q_idxs),
+                                       [-1, convnet_pars['n_approximators']])
 
             loss = tf.losses.huber_loss(self._target_q, self._q_acted)
             tf.summary.scalar('huber_loss', loss)
