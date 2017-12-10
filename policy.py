@@ -10,7 +10,6 @@ class BootPolicy(TDPolicy):
         self._n_approximators = n_approximators
 
     def draw_action(self, state):
-        n_apprx = self._n_approximators
         n_actions = self._approximator.n_actions
 
         start = self._idx * n_actions

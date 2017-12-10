@@ -36,8 +36,11 @@ class ConvNet:
         if a is None:
             return self._session.run(self.q, feed_dict={self._x: s})
         else:
-            return self._session.run(self._q_acted, feed_dict={self._x: s,
-                                                               self._action: a})
+            return self._session.run(
+                self._q_acted,
+                feed_dict={self._x: s,
+                           self._action: a.ravel().astype(np.uint8)}
+            )
 
     def fit(self, s, a, q):
         summaries, _ = self._session.run(
@@ -139,7 +142,6 @@ class ConvNet:
             action_one_hot = tf.one_hot(self._action,
                                         convnet_pars['output_shape'][0],
                                         name='action_one_hot')
-
             expanded_action_one_hot = tf.reshape(
                 tf.tile(action_one_hot, [1, convnet_pars['n_approximators']]),
                 [1, -1]
@@ -148,7 +150,7 @@ class ConvNet:
                                 [1, -1])[0]
             reshaped_q = tf.reshape(self.q, [1, -1])[0]
 
-            self._q_acted = tf.reshape(tf.gather_nd(reshaped_q, q_idxs),
+            self._q_acted = tf.reshape(tf.gather(reshaped_q, q_idxs),
                                        [-1, convnet_pars['n_approximators']])
 
             loss = tf.losses.huber_loss(self._target_q, self._q_acted)
