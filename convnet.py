@@ -153,7 +153,8 @@ class ConvNet:
             self._q_acted = tf.reshape(tf.gather(reshaped_q, q_idxs),
                                        [-1, convnet_pars['n_approximators']])
 
-            loss = tf.losses.huber_loss(self._target_q, self._q_acted)
+            loss = tf.losses.huber_loss(self._target_q, self._q_acted) /\
+                   convnet_pars['n_approximators']
             tf.summary.scalar('huber_loss', loss)
             tf.summary.scalar('average_q', tf.reduce_mean(self.q))
             self._merged = tf.summary.merge(
