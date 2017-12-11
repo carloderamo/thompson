@@ -133,14 +133,13 @@ class ConvNet:
             self._q = list()
             self._q_acted = list()
             for i in xrange(convnet_pars['n_approximators']):
-                with tf.variable_scope('Features'):
+                with tf.variable_scope('head_' + str(i)):
                     self._features.append(tf.layers.dense(
                         flatten, 512, activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
                         bias_initializer=tf.glorot_uniform_initializer(),
                         name='features_' + str(i)
                     ))
-                with tf.variable_scope('All_Q'):
                     self._q.append(tf.layers.dense(
                         self._features[i],
                         convnet_pars['output_shape'][0],
@@ -148,7 +147,6 @@ class ConvNet:
                         bias_initializer=tf.glorot_uniform_initializer(),
                         name='q_' + str(i)
                     ))
-                with tf.variable_scope('Action_Q'):
                     self._q_acted.append(
                         tf.reduce_sum(self._q[i] * action_one_hot,
                                       axis=1,
