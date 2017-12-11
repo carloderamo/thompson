@@ -4,24 +4,29 @@ from mushroom.policy.td_policy import TDPolicy
 
 
 class BootPolicy(TDPolicy):
-    def __init__(self, n_approximators):
+    def __init__(self, n_approximators, evaluation=False):
         super(BootPolicy, self).__init__()
 
         self._n_approximators = n_approximators
+        self._evaluation = evaluation
 
     def draw_action(self, state):
-        n_actions = self._approximator.n_actions
+        q = self._approximator.predict(state)
+        if not self._evaluation:
+            q = q[self._idx]
 
-        start = self._idx * n_actions
-        stop = self._idx * n_actions + n_actions
-
-        q = self._approximator.predict(state)[start:stop]
-        max_a = np.argwhere(q == np.max(q)).ravel()
-
-        if len(max_a) > 1:
-            max_a = np.array([np.random.choice(max_a)])
+            max_a = np.argwhere(q == np.max(q)).ravel()
+            if len(max_a) > 1:
+                max_a = np.array([np.random.choice(max_a)])
+        else:
+            max_as, count = np.unique(np.argmax(q, axis=1), return_counts=True)
+            max_a = np.array([max_as[np.random.choice(
+                np.argwhere(count == np.max(count)).ravel())]])
 
         return max_a
 
     def set_apprx(self, idx):
         self._idx = idx
+
+    def set_eval(self, eval):
+        self._evaluation = eval

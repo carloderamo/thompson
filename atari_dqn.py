@@ -167,6 +167,7 @@ def experiment(algorithm, n_approximators):
 
         # Evaluate model
         mdp.set_episode_end(ends_at_life=False)
+        pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
@@ -267,12 +268,14 @@ def experiment(algorithm, n_approximators):
         mdp.set_episode_end(ends_at_life=False)
         if algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
+        pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
         scores.append(get_stats(dataset, mdp.info.gamma))
         if algorithm == 'ddqn':
             agent.policy.set_q(agent.approximator)
+        pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
@@ -293,12 +296,14 @@ def experiment(algorithm, n_approximators):
             core_test.reset()
             if algorithm == 'ddqn':
                 agent.policy.set_q(agent.target_approximator)
+            pi.set_eval(True)
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
             scores.append(get_stats(dataset, mdp.info.gamma))
             if algorithm == 'ddqn':
                 agent.policy.set_q(agent.approximator)
+            pi.set_eval(False)
 
             np.save(folder_name + '/scores.npy', scores)
 

@@ -85,11 +85,9 @@ class DQN(Agent):
 
         """
         q = self.target_approximator.predict(next_state)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
-
-        q = np.reshape(q, [self._batch_size, self._n_approximators,
-                       self.mdp_info.action_space.n])
+        for i in xrange(q.shape[0]):
+            if absorbing[i]:
+                q[i] *= 1. - absorbing[i]
 
         return np.max(q, axis=2)
 
@@ -124,11 +122,10 @@ class DoubleDQN(DQN):
     """
     def _next_q(self, next_state, absorbing):
         q = self.approximator.predict(next_state)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
+        for i in xrange(q.shape[0]):
+            if absorbing[i]:
+                q[i] *= 1. - absorbing[i]
 
-        q = np.reshape(q, [self._batch_size, self._n_approximators,
-                       self.mdp_info.action_space.n])
         max_a = np.argmax(q, axis=2)
 
         return self.target_approximator.predict(next_state, max_a)

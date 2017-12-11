@@ -34,10 +34,10 @@ class ConvNet:
 
     def predict(self, s, a=None):
         if a is None:
-            return self._session.run(self.q, feed_dict={self._x: s})
+            return self._session.run(self._q_stack, feed_dict={self._x: s})
         else:
             return self._session.run(
-                self._q_acted,
+                self._q_acted_stack,
                 feed_dict={self._x: s,
                            self._action: a.ravel().astype(np.uint8)}
             )
@@ -94,69 +94,80 @@ class ConvNet:
     def _build(self, convnet_pars):
         with tf.variable_scope(None, default_name=self._name):
             self._scope_name = tf.get_default_graph().get_name_scope() + '/'
-            self._x = tf.placeholder(tf.float32,
-                                     shape=[None] + list(
-                                         convnet_pars['input_shape']),
-                                     name='input')
-            hidden_1 = tf.layers.conv2d(
-                self._x, 32, 8, 4, activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
-                name='hidden_1'
-            )
-            hidden_2 = tf.layers.conv2d(
-                hidden_1, 64, 4, 2, activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
-                name='hidden_2'
-            )
-            hidden_3 = tf.layers.conv2d(
-                hidden_2, 64, 3, 1, activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
-                name='hidden_3'
-            )
-            flatten = tf.reshape(hidden_3, [-1, 7 * 7 * 64], name='flatten')
-            self._features = tf.layers.dense(
-                flatten, 512, activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
-                name='_features'
-            )
-            self.q = tf.layers.dense(
-                self._features,
-                convnet_pars['output_shape'][0] * convnet_pars[
-                    'n_approximators'],
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
-                name='q'
-            )
+
+            with tf.variable_scope('State'):
+                self._x = tf.placeholder(tf.float32,
+                                         shape=[None] + list(
+                                             convnet_pars['input_shape']),
+                                         name='input')
+
+            with tf.variable_scope('Action'):
+                self._action = tf.placeholder('uint8', [None], name='action')
+
+                action_one_hot = tf.one_hot(self._action,
+                                            convnet_pars['output_shape'][0],
+                                            name='action_one_hot')
+
+            with tf.variable_scope('Convolutions'):
+                hidden_1 = tf.layers.conv2d(
+                    self._x, 32, 8, 4, activation=tf.nn.relu,
+                    kernel_initializer=tf.glorot_uniform_initializer(),
+                    bias_initializer=tf.glorot_uniform_initializer(),
+                    name='hidden_1'
+                )
+                hidden_2 = tf.layers.conv2d(
+                    hidden_1, 64, 4, 2, activation=tf.nn.relu,
+                    kernel_initializer=tf.glorot_uniform_initializer(),
+                    bias_initializer=tf.glorot_uniform_initializer(),
+                    name='hidden_2'
+                )
+                hidden_3 = tf.layers.conv2d(
+                    hidden_2, 64, 3, 1, activation=tf.nn.relu,
+                    kernel_initializer=tf.glorot_uniform_initializer(),
+                    bias_initializer=tf.glorot_uniform_initializer(),
+                    name='hidden_3'
+                )
+                flatten = tf.reshape(hidden_3, [-1, 7 * 7 * 64], name='flatten')
+
+            self._features = list()
+            self._q = list()
+            self._q_acted = list()
+            for i in xrange(convnet_pars['n_approximators']):
+                with tf.variable_scope('Features'):
+                    self._features.append(tf.layers.dense(
+                        flatten, 512, activation=tf.nn.relu,
+                        kernel_initializer=tf.glorot_uniform_initializer(),
+                        bias_initializer=tf.glorot_uniform_initializer(),
+                        name='features_' + str(i)
+                    ))
+                with tf.variable_scope('All_Q'):
+                    self._q.append(tf.layers.dense(
+                        self._features[i],
+                        convnet_pars['output_shape'][0],
+                        kernel_initializer=tf.glorot_uniform_initializer(),
+                        bias_initializer=tf.glorot_uniform_initializer(),
+                        name='q_' + str(i)
+                    ))
+                with tf.variable_scope('Action_Q'):
+                    self._q_acted.append(
+                        tf.reduce_sum(self._q[i] * action_one_hot,
+                                      axis=1,
+                                      name='q_acted_' + str(i))
+                    )
+            with tf.variable_scope('All_Q'):
+                self._q_stack = tf.stack(self._q, axis=1)
+            with tf.variable_scope('Action_Q'):
+                self._q_acted_stack = tf.stack(self._q_acted, axis=1)
 
             self._target_q = tf.placeholder(
                 'float32',
                 [None, convnet_pars['n_approximators']],
                 name='target_q'
             )
-            self._action = tf.placeholder('uint8', [None], name='action')
-
-            action_one_hot = tf.one_hot(self._action,
-                                        convnet_pars['output_shape'][0],
-                                        name='action_one_hot')
-            expanded_action_one_hot = tf.reshape(
-                tf.tile(action_one_hot, [1, convnet_pars['n_approximators']]),
-                [1, -1]
-            )[0]
-            q_idxs = tf.reshape(tf.where(expanded_action_one_hot > 0),
-                                [1, -1])[0]
-            reshaped_q = tf.reshape(self.q, [1, -1])[0]
-
-            self._q_acted = tf.reshape(tf.gather(reshaped_q, q_idxs),
-                                       [-1, convnet_pars['n_approximators']])
-
-            loss = tf.losses.huber_loss(self._target_q, self._q_acted) /\
+            loss = tf.losses.huber_loss(self._target_q, self._q_acted_stack) /\
                    convnet_pars['n_approximators']
             tf.summary.scalar('huber_loss', loss)
-            tf.summary.scalar('average_q', tf.reduce_mean(self.q))
+            tf.summary.scalar('average_q', tf.reduce_mean(self._q_stack))
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
                                   scope=self._scope_name)
@@ -204,20 +215,26 @@ class ConvNet:
     def _add_collection(self):
         tf.add_to_collection(self._scope_name + '_x', self._x)
         tf.add_to_collection(self._scope_name + '_action', self._action)
-        tf.add_to_collection(self._scope_name + '_features', self._features)
-        tf.add_to_collection(self._scope_name + '_q', self.q)
+        for i in xrange(len(self._features)):
+            tf.add_to_collection(self._scope_name + '_features_' + str(i),
+                                 self._features[i])
+        tf.add_to_collection(self._scope_name + '_q_stack', self._q_stack)
         tf.add_to_collection(self._scope_name + '_target_q', self._target_q)
-        tf.add_to_collection(self._scope_name + '_q_acted', self._q_acted)
+        tf.add_to_collection(self._scope_name + '_q_acted_stack',
+                             self._q_acted_stack)
         tf.add_to_collection(self._scope_name + '_merged', self._merged)
         tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
-    def _restore_collection(self):
+    def _restore_collection(self, n_approximators):
         self._x = tf.get_collection(self._scope_name + '_x')[0]
         self._action = tf.get_collection(self._scope_name + '_action')[0]
-        self._features = tf.get_collection(self._scope_name + '_features')[0]
-        self.q = tf.get_collection(self._scope_name + '_q')[0]
+        for i in xrange(n_approximators):
+            self._features[i] = tf.get_collection(
+                self._scope_name + '_features_' + str(i))[0]
+        self._q_stack = tf.get_collection(self._scope_name + '_q_stack')[0]
         self._target_q = tf.get_collection(self._scope_name + '_target_q')[0]
-        self._q_acted = tf.get_collection(self._scope_name + '_q_acted')[0]
+        self._q_acted_stack = tf.get_collection(
+            self._scope_name + '_q_acted_stack')[0]
         self._merged = tf.get_collection(self._scope_name + '_merged')[0]
         self._train_step = tf.get_collection(
             self._scope_name + '_train_step')[0]
