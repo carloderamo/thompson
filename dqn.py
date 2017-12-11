@@ -55,7 +55,8 @@ class DQN(Agent):
                 reward = np.clip(reward, -1, 1)
 
             q_next = self._next_q(next_state, absorbing)
-            q = reward.reshape(-1, 1) + self.mdp_info.gamma * q_next
+            q = reward.reshape(self._batch_size,
+                               1) + self.mdp_info.gamma * q_next
 
             self.approximator.fit(state, action, q, **self.params['fit_params'])
 
