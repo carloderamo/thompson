@@ -128,7 +128,14 @@ class DoubleDQN(DQN):
 
         max_a = np.argmax(q, axis=2)
 
-        return self.target_approximator.predict(next_state, max_a)
+        tq = self.target_approximator.predict(next_state)
+
+        double_q = np.zeros(q.shape[:2])
+        for i in xrange(double_q.shape[0]):
+            for j in xrange(double_q.shape[1]):
+                double_q[i, j] = tq[i, j, max_a[i, j]]
+
+        return double_q
 
 
 class WeightedDQN(DQN):
