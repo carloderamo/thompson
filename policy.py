@@ -4,11 +4,10 @@ from mushroom.policy.td_policy import TDPolicy
 
 
 class BootPolicy(TDPolicy):
-    def __init__(self, n_approximators, evaluation=False):
+    def __init__(self):
         super(BootPolicy, self).__init__()
 
-        self._n_approximators = n_approximators
-        self._evaluation = evaluation
+        self._evaluation = False
 
     def draw_action(self, state):
         q = self._approximator.predict(state)

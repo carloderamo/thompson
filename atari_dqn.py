@@ -38,7 +38,7 @@ def get_stats(dataset, gamma):
     return J
 
 
-def experiment(algorithm, n_approximators):
+def experiment(algorithm):
     np.random.seed()
 
     # Argument parser
@@ -78,6 +78,9 @@ def experiment(algorithm, n_approximators):
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
+    arg_alg.add_argument("--n-approximators", type=int, default=10,
+                         help="Number of approximators used in the ensemble for"
+                              "Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -127,7 +130,7 @@ def experiment(algorithm, n_approximators):
                     ends_at_life=True)
 
         # Policy
-        pi = BootPolicy(n_approximators)
+        pi = BootPolicy()
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -136,7 +139,7 @@ def experiment(algorithm, n_approximators):
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_approximators=n_approximators,
+            n_approximators=args.n_approximators,
             input_preprocessor=[Scaler(mdp.info.observation_space.high[0, 0])],
             name='test',
             load_path=args.load_path,
@@ -151,7 +154,7 @@ def experiment(algorithm, n_approximators):
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
-            n_approximators=n_approximators,
+            n_approximators=args.n_approximators,
             history_length=args.history_length,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value
@@ -205,7 +208,7 @@ def experiment(algorithm, n_approximators):
                                       width_window=args.screen_width)
 
         # Policy
-        pi = BootPolicy(n_approximators)
+        pi = BootPolicy()
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -214,7 +217,7 @@ def experiment(algorithm, n_approximators):
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_approximators=n_approximators,
+            n_approximators=args.n_approximators,
             input_preprocessor=[Scaler(
                 mdp.info.observation_space.high[0, 0])],
             folder_name=folder_name,
@@ -232,7 +235,7 @@ def experiment(algorithm, n_approximators):
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
-            n_approximators=n_approximators,
+            n_approximators=args.n_approximators,
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
@@ -312,13 +315,12 @@ def experiment(algorithm, n_approximators):
 
 if __name__ == '__main__':
     algs = ['dqn', 'ddqn', 'wdqn']
-    n_apprx = [10]
     n_experiments = 10
 
-    for i, a in enumerate(algs):
+    for a in algs:
         s = list()
-        for i in xrange(n_experiments):
-            s.append(experiment(a, n_apprx[i]))
+        for _ in xrange(n_experiments):
+            s.append(experiment(a))
             tf.reset_default_graph()
 
         np.save('logs/' + a + '/scores.npy', s)

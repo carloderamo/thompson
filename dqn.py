@@ -145,11 +145,9 @@ class WeightedDQN(DQN):
     """
     def _next_q(self, next_state, absorbing):
         q = self.approximator.predict(next_state)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
-
-        q = np.reshape(q, [self._batch_size, self._n_approximators,
-                       self.mdp_info.action_space.n])
+        for i in xrange(q.shape[0]):
+            if absorbing[i]:
+                q[i] *= 1. - absorbing[i]
 
         W = np.zeros((next_state.shape[0], self._n_approximators))
 
