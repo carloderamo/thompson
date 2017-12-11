@@ -144,13 +144,19 @@ class WeightedDQN(DQN):
 
     """
     def _next_q(self, next_state, absorbing):
-        q = self.approximator.predict(next_state)
+        q = self.target_approximator.predict(next_state)
         for i in xrange(q.shape[0]):
             if absorbing[i]:
                 q[i] *= 1. - absorbing[i]
 
         W = np.zeros((next_state.shape[0], self._n_approximators))
 
-        pass
+        for i in xrange(W.shape[0]):
+            max_a = np.argmax(q[i], axis=1)
+            max_idx, max_count = np.unique(max_a, return_counts=True)
+            count = np.zeros(self.mdp_info.action_space.n)
+            count[max_idx] = max_count
+            w = count / float(self._n_approximators)
+            W[i] = np.dot(q[i], w)
 
         return W
