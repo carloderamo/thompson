@@ -133,8 +133,15 @@ def experiment(algorithm):
     # Evaluation of the model provided by the user.
     if args.load_path:
         # MDP
-        mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+        if args.name == 'grid':
+            mdp = GridWorldPixelGenerator('grid.txt',
+                                          height_window=args.screen_height,
+                                          width_window=args.screen_width)
+            compute_j = True
+        else:
+            mdp = Atari(args.name, args.screen_width, args.screen_height,
+                        ends_at_life=True)
+            compute_j = False
 
         # Policy
         pi = BootPolicy()
@@ -181,7 +188,7 @@ def experiment(algorithm):
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset, mdp.info.gamma)
+        get_stats(dataset, mdp.info.gamma, compute_j)
     else:
         # DQN learning run
 
@@ -212,9 +219,11 @@ def experiment(algorithm):
             mdp = GridWorldPixelGenerator('grid.txt',
                                           height_window=args.screen_height,
                                           width_window=args.screen_width)
+            compute_j = True
         else:
             mdp = Atari(args.name, args.screen_width, args.screen_height,
                         ends_at_life=True)
+            compute_j = False
 
         # Policy
         pi = BootPolicy()
@@ -284,7 +293,7 @@ def experiment(algorithm):
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        scores.append(get_stats(dataset, mdp.info.gamma))
+        scores.append(get_stats(dataset, mdp.info.gamma, compute_j))
         if algorithm == 'ddqn':
             agent.policy.set_q(agent.approximator)
         pi.set_eval(False)
@@ -312,7 +321,7 @@ def experiment(algorithm):
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            scores.append(get_stats(dataset, mdp.info.gamma))
+            scores.append(get_stats(dataset, mdp.info.gamma, compute_j))
             if algorithm == 'ddqn':
                 agent.policy.set_q(agent.approximator)
             pi.set_eval(False)
