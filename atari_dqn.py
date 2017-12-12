@@ -8,7 +8,7 @@ import tensorflow as tf
 from mushroom.core.core import Core
 from mushroom.environments import Atari
 from grid_world import GridWorldPixelGenerator
-from mushroom.utils.dataset import compute_J
+from mushroom.utils.dataset import compute_J, compute_scores
 from mushroom.utils.preprocessor import Scaler
 
 from convnet import ConvNet
@@ -31,11 +31,18 @@ def print_epoch(epoch):
     print '----------------------------------------------------------------'
 
 
-def get_stats(dataset, gamma):
-    J = np.mean(compute_J(dataset, gamma))
-    print('J: %f' % J)
+def get_stats(dataset, gamma, j=False):
+    if j:
+        J = np.mean(compute_J(dataset, gamma))
+        print('J: %f' % J)
 
-    return J
+        return J
+    else:
+        score = compute_scores(dataset)
+        print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+              ' games_completed: %d' % score)
+
+        return score
 
 
 def experiment(algorithm):
@@ -201,11 +208,13 @@ def experiment(algorithm):
             max_steps = args.max_steps
 
         # MDP
-        mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
-        mdp = GridWorldPixelGenerator('grid.txt',
-                                      height_window=args.screen_height,
-                                      width_window=args.screen_width)
+        if args.name == 'grid':
+            mdp = GridWorldPixelGenerator('grid.txt',
+                                          height_window=args.screen_height,
+                                          width_window=args.screen_width)
+        else:
+            mdp = Atari(args.name, args.screen_width, args.screen_height,
+                        ends_at_life=True)
 
         # Policy
         pi = BootPolicy()
