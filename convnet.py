@@ -11,7 +11,7 @@ class ConvNet:
         self._session = tf.Session()
 
         if load_path is not None:
-            self._load(load_path)
+            self._load(load_path, convnet_pars)
         else:
             self._build(convnet_pars)
 
@@ -76,7 +76,7 @@ class ConvNet:
             self._scope_name[:-1]
         )
 
-    def _load(self, path):
+    def _load(self, path, convnet_pars):
         self._scope_name = 'train/'
         restorer = tf.train.import_meta_graph(
             path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1] +
@@ -85,7 +85,7 @@ class ConvNet:
             self._session,
             path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1]
         )
-        self._restore_collection()
+        self._restore_collection(convnet_pars)
 
     def _build(self, convnet_pars):
         with tf.variable_scope(None, default_name=self._name):
@@ -218,10 +218,10 @@ class ConvNet:
         tf.add_to_collection(self._scope_name + '_merged', self._merged)
         tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
-    def _restore_collection(self, n_approximators):
+    def _restore_collection(self, convnet_pars):
         self._x = tf.get_collection(self._scope_name + '_x')[0]
         self._action = tf.get_collection(self._scope_name + '_action')[0]
-        for i in xrange(n_approximators):
+        for i in xrange(convnet_pars['n_approximators']):
             self._features[i] = tf.get_collection(
                 self._scope_name + '_features_' + str(i))[0]
             self._q[i] = tf.get_collection(self._scope_name + '_q_' + str(i))[0]
