@@ -10,14 +10,15 @@ class BootPolicy(TDPolicy):
         self._evaluation = False
 
     def draw_action(self, state):
-        q = self._approximator.predict(state)
         if not self._evaluation:
-            q = q[self._idx]
+            q = self._approximator.predict(state, idx=self._idx)
 
             max_a = np.argwhere(q == np.max(q)).ravel()
             if len(max_a) > 1:
                 max_a = np.array([np.random.choice(max_a)])
         else:
+            q = np.array(self._approximator.predict(state))
+
             max_as, count = np.unique(np.argmax(q, axis=1), return_counts=True)
             max_a = np.array([max_as[np.random.choice(
                 np.argwhere(count == np.max(count)).ravel())]])

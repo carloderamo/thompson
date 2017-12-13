@@ -32,15 +32,11 @@ class ConvNet:
                                                              shape=w[i].shape))
                         self._w.append(w[i].assign(self._target_w[i]))
 
-    def predict(self, s, a=None):
-        if a is None:
-            return self._session.run(self._q_stack, feed_dict={self._x: s})
+    def predict(self, s, idx=None):
+        if idx is not None:
+            return self._session.run(self._q[idx], feed_dict={self._x: s})
         else:
-            return self._session.run(
-                self._q_acted_stack,
-                feed_dict={self._x: s,
-                           self._action: a.ravel().astype(np.uint8)}
-            )
+            return self._session.run(self._q, feed_dict={self._x: s})
 
     def fit(self, s, a, q):
         summaries, _ = self._session.run(
@@ -152,19 +148,19 @@ class ConvNet:
                                       axis=1,
                                       name='q_acted_' + str(i))
                     )
-            with tf.variable_scope('All_Q'):
-                self._q_stack = tf.stack(self._q, axis=1)
-            with tf.variable_scope('Action_Q'):
-                self._q_acted_stack = tf.stack(self._q_acted, axis=1)
 
             self._target_q = tf.placeholder(
                 'float32',
                 [None, convnet_pars['n_approximators']],
                 name='target_q'
             )
-            loss = tf.losses.huber_loss(self._target_q, self._q_acted_stack)
+            loss = 0.
+            for i in xrange(convnet_pars['n_approximators']):
+                loss += tf.losses.huber_loss(self._target_q[:, i],
+                                             self._q_acted[i])
+            loss /= convnet_pars['n_approximators']
             tf.summary.scalar('huber_loss', loss)
-            tf.summary.scalar('average_q', tf.reduce_mean(self._q_stack))
+            tf.summary.scalar('average_q', tf.reduce_mean(self._q))
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
                                   scope=self._scope_name)
@@ -215,10 +211,10 @@ class ConvNet:
         for i in xrange(len(self._features)):
             tf.add_to_collection(self._scope_name + '_features_' + str(i),
                                  self._features[i])
-        tf.add_to_collection(self._scope_name + '_q_stack', self._q_stack)
+            tf.add_to_collection(self._scope_name + '_q_' + str(i), self._q[i])
+            tf.add_to_collection(self._scope_name + '_q_acted_' + str(i),
+                                 self._q_acted[i])
         tf.add_to_collection(self._scope_name + '_target_q', self._target_q)
-        tf.add_to_collection(self._scope_name + '_q_acted_stack',
-                             self._q_acted_stack)
         tf.add_to_collection(self._scope_name + '_merged', self._merged)
         tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
@@ -228,10 +224,10 @@ class ConvNet:
         for i in xrange(n_approximators):
             self._features[i] = tf.get_collection(
                 self._scope_name + '_features_' + str(i))[0]
-        self._q_stack = tf.get_collection(self._scope_name + '_q_stack')[0]
+            self._q[i] = tf.get_collection(self._scope_name + '_q_' + str(i))[0]
+            self._q_acted[i] = tf.get_collection(
+                self._scope_name + '_q_acted_' + str(i))[0]
         self._target_q = tf.get_collection(self._scope_name + '_target_q')[0]
-        self._q_acted_stack = tf.get_collection(
-            self._scope_name + '_q_acted_stack')[0]
         self._merged = tf.get_collection(self._scope_name + '_merged')[0]
         self._train_step = tf.get_collection(
             self._scope_name + '_train_step')[0]

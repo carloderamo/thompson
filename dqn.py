@@ -85,12 +85,12 @@ class DQN(Agent):
             Maximum action-value for each state in `next_state`.
 
         """
-        q = self.target_approximator.predict(next_state)
-        for i in xrange(q.shape[0]):
+        q = np.array(self.target_approximator.predict(next_state))
+        for i in xrange(q.shape[1]):
             if absorbing[i]:
-                q[i] *= 1. - absorbing[i]
+                q[:, i, :] *= 1. - absorbing[i]
 
-        return np.max(q, axis=2)
+        return np.max(q, axis=2).T
 
     def draw_action(self, state):
         self._buffer.add(state)
@@ -122,14 +122,14 @@ class DoubleDQN(DQN):
 
     """
     def _next_q(self, next_state, absorbing):
-        q = self.approximator.predict(next_state)
+        q = np.array(self.approximator.predict(next_state))
         for i in xrange(q.shape[0]):
             if absorbing[i]:
                 q[i] *= 1. - absorbing[i]
 
         max_a = np.argmax(q, axis=2)
 
-        tq = self.target_approximator.predict(next_state)
+        tq = np.array(self.target_approximator.predict(next_state))
 
         double_q = np.zeros(q.shape[:2])
         for i in xrange(double_q.shape[0]):
@@ -145,7 +145,7 @@ class WeightedDQN(DQN):
 
     """
     def _next_q(self, next_state, absorbing):
-        q = self.target_approximator.predict(next_state)
+        q = np.array(self.target_approximator.predict(next_state))
         for i in xrange(q.shape[0]):
             if absorbing[i]:
                 q[i] *= 1. - absorbing[i]
