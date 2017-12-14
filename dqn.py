@@ -129,9 +129,9 @@ class DoubleDQN(DQN):
     """
     def _next_q(self, next_state, absorbing):
         q = np.array(self.approximator.predict(next_state))
-        for i in xrange(q.shape[0]):
+        for i in xrange(q.shape[1]):
             if absorbing[i]:
-                q[i] *= 1. - absorbing[i]
+                q[:, i, :] *= 1. - absorbing[i]
 
         max_a = np.argmax(q, axis=2)
 
@@ -152,9 +152,9 @@ class WeightedDQN(DQN):
     """
     def _next_q(self, next_state, absorbing):
         q = np.array(self.target_approximator.predict(next_state))
-        for i in xrange(q.shape[0]):
+        for i in xrange(q.shape[1]):
             if absorbing[i]:
-                q[i] *= 1. - absorbing[i]
+                q[:, i, :] *= 1. - absorbing[i]
 
         mean_q = np.mean(q, axis=0)
 
