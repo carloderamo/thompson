@@ -18,6 +18,7 @@ class DQN(Agent):
             'target_update_frequency')
         self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
         self._no_op_action_value = alg_params.get('no_op_action_value', 0)
+        self._p_mask = alg_params.get('p_mask')
 
         self._replay_memory = ReplayMemory(
             mdp_info,
@@ -58,7 +59,13 @@ class DQN(Agent):
             q = reward.reshape(self._batch_size,
                                1) + self.mdp_info.gamma * q_next
 
-            self.approximator.fit(state, action, q, **self.params['fit_params'])
+            print(self._p_mask)
+            mask = np.random.binomial(1, self._p_mask,
+                                      size=(self._batch_size,
+                                            self._n_approximators))
+
+            self.approximator.fit(state, action, q, mask=mask,
+                                  **self.params['fit_params'])
 
             self._n_updates += 1
 

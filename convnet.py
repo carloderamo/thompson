@@ -38,12 +38,13 @@ class ConvNet:
         else:
             return self._session.run(self._q, feed_dict={self._x: s})
 
-    def fit(self, s, a, q):
+    def fit(self, s, a, q, mask):
         summaries, _ = self._session.run(
             [self._merged, self._train_step],
             feed_dict={self._x: s,
                        self._action: a.ravel().astype(np.uint8),
-                       self._target_q: q}
+                       self._target_q: q,
+                       self._mask: mask}
         )
         if hasattr(self, '_train_writer'):
             self._train_writer.add_summary(summaries, self._train_count)
@@ -104,6 +105,10 @@ class ConvNet:
                                             convnet_pars['output_shape'][0],
                                             name='action_one_hot')
 
+            with tf.variable_scope('Mask'):
+                self._mask = tf.placeholder(
+                    tf.float32, shape=[None, convnet_pars['n_approximators']])
+
             with tf.variable_scope('Convolutions'):
                 hidden_1 = tf.layers.conv2d(
                     self._x, 32, 8, 4, activation=tf.nn.relu,
@@ -156,8 +161,10 @@ class ConvNet:
             )
             loss = 0.
             for i in xrange(convnet_pars['n_approximators']):
-                loss += tf.losses.huber_loss(self._target_q[:, i],
-                                             self._q_acted[i])
+                loss += tf.losses.huber_loss(
+                    self._mask[:, i] * self._target_q[:, i],
+                    self._mask[:, i] * self._q_acted[i]
+                )
             loss /= convnet_pars['n_approximators']
             tf.summary.scalar('huber_loss', loss)
             tf.summary.scalar('average_q', tf.reduce_mean(self._q))

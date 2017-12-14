@@ -111,6 +111,7 @@ def experiment(algorithm):
                               'history_length.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
+    arg_alg.add_argument("--p-mask", type=float, default=2 / 3.)
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--load-path', type=str,
@@ -171,7 +172,8 @@ def experiment(algorithm):
             n_approximators=args.n_approximators,
             history_length=args.history_length,
             max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value
+            no_op_action_value=args.no_op_action_value,
+            p_mask=args.p_mask
         )
         fit_params = dict()
         agent_params = {'approximator_params': approximator_params,
@@ -257,7 +259,8 @@ def experiment(algorithm):
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value
+            no_op_action_value=args.no_op_action_value,
+            p_mask=args.p_mask
         )
         fit_params = dict()
         agent_params = {'approximator_params': approximator_params,
