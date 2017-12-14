@@ -4,7 +4,8 @@ import numpy as np
 
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators.regressor import Ensemble, Regressor
-from mushroom.utils.replay_memory import Buffer, ReplayMemory
+
+from replay_memory import Buffer, ReplayMemory
 
 
 class DQN(Agent):
@@ -12,7 +13,7 @@ class DQN(Agent):
         alg_params = params['algorithm_params']
         self._batch_size = alg_params.get('batch_size')
         self._clip_reward = alg_params.get('clip_reward', True)
-        self._n_approximators = alg_params.get('n_approximators', 1)
+        self._n_approximators = alg_params.get('n_approximators')
         self._train_frequency = alg_params.get('train_frequency')
         self._target_update_frequency = alg_params.get(
             'target_update_frequency')
@@ -24,7 +25,8 @@ class DQN(Agent):
             mdp_info,
             alg_params.get('initial_replay_size'),
             alg_params.get('max_replay_size'),
-            alg_params.get('history_length', 1)
+            alg_params.get('history_length', 1),
+            alg_params.get('n_approximators')
         )
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
 
@@ -47,9 +49,12 @@ class DQN(Agent):
         super(DQN, self).__init__(policy, mdp_info, params)
 
     def fit(self, dataset):
-        self._replay_memory.add(dataset)
+        mask = np.random.binomial(1, self._p_mask,
+                                  size=(len(dataset),
+                                        self._n_approximators))
+        self._replay_memory.add(dataset, mask)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ =\
+            state, action, reward, next_state, absorbing, _, mask =\
                 self._replay_memory.get(self._batch_size)
 
             if self._clip_reward:
@@ -58,10 +63,6 @@ class DQN(Agent):
             q_next = self._next_q(next_state, absorbing)
             q = reward.reshape(self._batch_size,
                                1) + self.mdp_info.gamma * q_next
-
-            mask = np.random.binomial(1, self._p_mask,
-                                      size=(self._batch_size,
-                                            self._n_approximators))
 
             self.approximator.fit(state, action, q, mask=mask,
                                   **self.params['fit_params'])
