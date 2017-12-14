@@ -116,7 +116,7 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
         # MDP properties
         observation_space = spaces.Box(
             low=0., high=255., shape=(self.window_size[1], self.window_size[0]))
-        action_space = spaces.Discrete(5)
+        action_space = spaces.Discrete(4)
         horizon = 100
         gamma = .95
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
@@ -131,18 +131,14 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
             absorbing = True
             success = True
         else:
-            if action == 1:
+            if action == 0:
                 new_state[0] -= 1
-            elif action == 2:
+            elif action == 1:
                 new_state[0] += 1
-            elif action == 3:
+            elif action == 2:
                 new_state[1] -= 1
-            elif action == 4:
+            elif action == 3:
                 new_state[1] += 1
-            else:
-                reward = np.random.choice([-12, 10])
-
-                return new_state, reward, False, {'success': True}
 
             c = self._grid[new_state[0]][new_state[1]]
             if c == self._symbols['*']:

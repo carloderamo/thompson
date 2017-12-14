@@ -114,8 +114,11 @@ class DQN(Agent):
         return action
 
     def episode_start(self):
-        self._no_op_actions = np.random.randint(
-            self._buffer.size, self._max_no_op_actions + 1)
+        if self._max_no_op_actions == 0:
+            self._no_op_actions = 0
+        else:
+            self._no_op_actions = np.random.randint(
+                self._buffer.size, self._max_no_op_actions + 1)
         self._episode_steps = 0
 
         self.policy.set_apprx(np.random.randint(self._n_approximators))
