@@ -142,7 +142,7 @@ class DoubleDQN(DQN):
             for j in xrange(double_q.shape[1]):
                 double_q[i, j] = tq[i, j, max_a[i, j]]
 
-        return double_q
+        return double_q.T
 
 
 class WeightedDQN(DQN):
