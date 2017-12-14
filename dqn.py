@@ -59,7 +59,6 @@ class DQN(Agent):
             q = reward.reshape(self._batch_size,
                                1) + self.mdp_info.gamma * q_next
 
-            print(self._p_mask)
             mask = np.random.binomial(1, self._p_mask,
                                       size=(self._batch_size,
                                             self._n_approximators))
