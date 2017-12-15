@@ -133,13 +133,13 @@ class DoubleDQN(DQN):
     """
     def _next_q(self, next_state, absorbing):
         q = np.array(self.approximator.predict(next_state))
+        tq = np.array(self.target_approximator.predict(next_state))
         for i in xrange(q.shape[1]):
             if absorbing[i]:
                 q[:, i, :] *= 1. - absorbing[i]
+                tq[:, i, :] *= 1. - absorbing[i]
 
         max_a = np.argmax(q, axis=2)
-
-        tq = np.array(self.target_approximator.predict(next_state))
 
         double_q = np.zeros(q.shape[:2])
         for i in xrange(double_q.shape[0]):
