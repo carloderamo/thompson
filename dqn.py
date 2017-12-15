@@ -136,7 +136,6 @@ class DoubleDQN(DQN):
         tq = np.array(self.target_approximator.predict(next_state))
         for i in xrange(q.shape[1]):
             if absorbing[i]:
-                q[:, i, :] *= 1. - absorbing[i]
                 tq[:, i, :] *= 1. - absorbing[i]
 
         max_a = np.argmax(q, axis=2)
