@@ -25,6 +25,8 @@ class BootPolicy(TDPolicy):
             max_a = np.array([max_as[np.random.choice(
                 np.argwhere(count == np.max(count)).ravel())]])
 
+            print(max_a)
+
         return max_a
 
     def set_eval(self, eval):
