@@ -19,7 +19,7 @@ class BootPolicy(TDPolicy):
             if len(max_a) > 1:
                 max_a = np.array([np.random.choice(max_a)])
         else:
-            q = np.array(self._approximator.predict(state))
+            q = np.array(self._approximator.predict(state)).squeeze()
 
             max_as, count = np.unique(np.argmax(q, axis=1), return_counts=True)
             max_a = np.array([max_as[np.random.choice(

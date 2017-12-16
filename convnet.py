@@ -36,7 +36,8 @@ class ConvNet:
         if idx is not None:
             return self._session.run(self._q[idx], feed_dict={self._x: s})
         else:
-            return self._session.run(self._q, feed_dict={self._x: s})
+            return np.array(
+                [self._session.run(self._q, feed_dict={self._x: s})])
 
     def fit(self, s, a, q, mask):
         summaries, _ = self._session.run(
