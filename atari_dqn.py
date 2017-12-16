@@ -145,7 +145,7 @@ def experiment(algorithm):
             compute_j = False
 
         # Policy
-        pi = BootPolicy()
+        pi = BootPolicy(args.n_approximators)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -228,7 +228,7 @@ def experiment(algorithm):
             compute_j = False
 
         # Policy
-        pi = BootPolicy()
+        pi = BootPolicy(args.n_approximators)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,

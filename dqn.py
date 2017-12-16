@@ -121,8 +121,6 @@ class DQN(Agent):
                 self._buffer.size, self._max_no_op_actions + 1)
         self._episode_steps = 0
 
-        self.policy.set_apprx(np.random.randint(self._n_approximators))
-
 
 class DoubleDQN(DQN):
     """
