@@ -6,14 +6,15 @@ import numpy as np
 import tensorflow as tf
 
 from mushroom.core.core import Core
-from mushroom.environments import Atari
-from grid_world import GridWorldPixelGenerator
+from mushroom.environments import Atari, GridWorldVanHasselt
 from mushroom.utils.dataset import compute_J, compute_scores
 from mushroom.utils.preprocessor import Scaler
 
 from convnet import ConvNet
 from dqn import DQN, DoubleDQN, WeightedDQN
+from one_hot_prepro import OneHot
 from policy import BootPolicy
+from simple_net import SimpleNet
 
 
 """
@@ -139,27 +140,30 @@ def experiment(algorithm):
     if args.load_path:
         # MDP
         if args.name == 'grid':
-            mdp = GridWorldPixelGenerator('grid.txt',
-                                          height_window=args.screen_height,
-                                          width_window=args.screen_width)
-            compute_j = True
+            mdp = GridWorldVanHasselt()
         else:
             mdp = Atari(args.name, args.screen_width, args.screen_height,
                         ends_at_life=True)
-            compute_j = False
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
+        if args.name != 'grid':
+            input_shape = (args.screen_height, args.screen_width,
+                           args.history_length)
+            input_preprocessor = [Scaler(
+                mdp.info.observation_space.high[0, 0])]
+        else:
+            input_shape = (mdp.info.observation_space.n,)
+            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
+            n_features=512 if args.name != 'grid' else 80,
             n_approximators=args.n_approximators,
-            input_preprocessor=[Scaler(mdp.info.observation_space.high[0, 0])],
+            input_preprocessor=input_preprocessor,
             name='test',
             load_path=args.load_path,
             optimizer={'name': args.optimizer,
@@ -168,7 +172,10 @@ def experiment(algorithm):
                        'epsilon': args.epsilon}
         )
 
-        approximator = ConvNet
+        if args.name != 'grid':
+            approximator = ConvNet
+        else:
+            approximator = SimpleNet
 
         # Agent
         algorithm_params = dict(
@@ -189,7 +196,8 @@ def experiment(algorithm):
         core_test = Core(agent, mdp)
 
         # Evaluate model
-        mdp.set_episode_end(ends_at_life=False)
+        if args.name != 'grid':
+            mdp.set_episode_end(ends_at_life=False)
         pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
@@ -222,9 +230,7 @@ def experiment(algorithm):
 
         # MDP
         if args.name == 'grid':
-            mdp = GridWorldPixelGenerator('grid.txt',
-                                          height_window=args.screen_height,
-                                          width_window=args.screen_width)
+            mdp = GridWorldVanHasselt()
         else:
             mdp = Atari(args.name, args.screen_width, args.screen_height,
                         ends_at_life=True)
@@ -233,15 +239,21 @@ def experiment(algorithm):
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
+        if args.name != 'grid':
+            input_shape = (args.screen_height, args.screen_width,
+                           args.history_length)
+            input_preprocessor = [Scaler(
+                mdp.info.observation_space.high[0, 0])]
+        else:
+            input_shape = (mdp.info.observation_space.n,)
+            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
+            n_features=512 if args.name != 'grid' else 80,
             n_approximators=args.n_approximators,
-            input_preprocessor=[Scaler(
-                mdp.info.observation_space.high[0, 0])],
+            input_preprocessor=input_preprocessor,
             folder_name=folder_name,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
@@ -249,7 +261,10 @@ def experiment(algorithm):
                        'epsilon': args.epsilon}
         )
 
-        approximator = ConvNet
+        if args.name != 'grid':
+            approximator = ConvNet
+        else:
+            approximator = SimpleNet
 
         # Agent
         algorithm_params = dict(
@@ -291,7 +306,8 @@ def experiment(algorithm):
             agent.approximator.model.save()
 
         # Evaluate initial policy
-        mdp.set_episode_end(ends_at_life=False)
+        if args.name != 'grid':
+            mdp.set_episode_end(ends_at_life=False)
         pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
@@ -307,7 +323,8 @@ def experiment(algorithm):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
-            mdp.set_episode_end(ends_at_life=True)
+            if args.name != 'grid':
+                mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
                        quiet=args.quiet)
@@ -317,7 +334,8 @@ def experiment(algorithm):
 
             print '- Evaluation:'
             # evaluation step
-            mdp.set_episode_end(ends_at_life=False)
+            if args.name != 'grid':
+                mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
             pi.set_eval(True)
             dataset = core_test.evaluate(n_steps=test_samples,
