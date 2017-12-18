@@ -31,12 +31,16 @@ def print_epoch(epoch):
     print '----------------------------------------------------------------'
 
 
-def get_stats(dataset, gamma, j=False):
-    if j:
-        J = np.mean(compute_J(dataset, gamma))
-        print('J: %f' % J)
+def get_stats(dataset, name):
+    if name == 'grid':
+        abs_count = 0
+        rewards = list()
+        for d in dataset:
+            rewards.append(d[2])
+            abs_count += d[4]
+        print('Goal reached: %d' % abs_count)
 
-        return J
+        return rewards
     else:
         score = compute_scores(dataset)
         print('min_reward: %f, max_reward: %f, mean_reward: %f,'
@@ -190,7 +194,7 @@ def experiment(algorithm):
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset, mdp.info.gamma, compute_j)
+        get_stats(dataset, args.name)
     else:
         # DQN learning run
 
@@ -221,11 +225,9 @@ def experiment(algorithm):
             mdp = GridWorldPixelGenerator('grid.txt',
                                           height_window=args.screen_height,
                                           width_window=args.screen_width)
-            compute_j = True
         else:
             mdp = Atari(args.name, args.screen_width, args.screen_height,
                         ends_at_life=True)
-            compute_j = False
 
         # Policy
         pi = BootPolicy(args.n_approximators)
@@ -294,7 +296,10 @@ def experiment(algorithm):
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        scores.append(get_stats(dataset, mdp.info.gamma, compute_j))
+        if args.name == 'grid':
+            scores += get_stats(dataset, args.name)
+        else:
+            scores.append(get_stats(dataset, args.name))
         pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
@@ -318,7 +323,10 @@ def experiment(algorithm):
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            scores.append(get_stats(dataset, mdp.info.gamma, compute_j))
+            if args.name == 'grid':
+                scores += get_stats(dataset, args.name)
+            else:
+                scores.append(get_stats(dataset, args.name))
             pi.set_eval(False)
 
             np.save(folder_name + '/scores.npy', scores)
