@@ -142,12 +142,12 @@ class SimpleNet:
             )
             loss = 0.
             for i in xrange(convnet_pars['n_approximators']):
-                loss += tf.losses.huber_loss(
+                loss += tf.losses.mean_squared_error(
                     self._mask[:, i] * self._target_q[:, i],
                     self._mask[:, i] * self._q_acted[i]
                 )
             total_loss = loss / convnet_pars['n_approximators']
-            tf.summary.scalar('huber_loss', total_loss)
+            tf.summary.scalar('mse', total_loss)
             tf.summary.scalar('average_q', tf.reduce_mean(self._q))
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
