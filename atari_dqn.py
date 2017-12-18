@@ -182,6 +182,7 @@ def experiment(algorithm):
             max_replay_size=0,
             n_approximators=args.n_approximators,
             history_length=args.history_length,
+            clip_reward=True if args.name != 'grid' else False,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
@@ -272,6 +273,7 @@ def experiment(algorithm):
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
+            clip_reward=True if args.name != 'grid' else False,
             n_approximators=args.n_approximators,
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
