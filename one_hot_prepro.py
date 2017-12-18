@@ -13,9 +13,7 @@ class OneHot(Preprocessor):
         self._n = n
 
     def _compute(self, x):
-        print(x)
         oh = np.zeros((len(x), self._n))
         oh[np.arange(len(x)), x.ravel().astype(np.int)] = 1.
-        print(oh)
 
         return oh
