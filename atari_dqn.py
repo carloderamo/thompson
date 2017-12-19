@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from mushroom.core.core import Core
-from mushroom.environments import Atari, GridWorldVanHasselt
+from mushroom.environments import Atari
 from mushroom.utils.dataset import compute_J, compute_scores
 from mushroom.utils.preprocessor import Scaler
 
@@ -33,22 +33,12 @@ def print_epoch(epoch):
     print '----------------------------------------------------------------'
 
 
-def get_stats(dataset, name):
-    if name == 'grid':
-        abs_count = 0
-        rewards = list()
-        for d in dataset:
-            rewards.append(d[2])
-            abs_count += d[4]
-        print('Goal reached: %d' % abs_count)
+def get_stats(dataset):
+    score = compute_scores(dataset)
+    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+          ' games_completed: %d' % score)
 
-        return rewards
-    else:
-        score = compute_scores(dataset)
-        print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-              ' games_completed: %d' % score)
-
-        return score
+    return score
 
 
 def experiment(algorithm):
@@ -139,30 +129,22 @@ def experiment(algorithm):
 
     # Evaluation of the model provided by the user.
     if args.load_path:
-        # MDP
-        if args.name == 'grid':
-            mdp = GridWorldVanHasselt()
-        else:
-            mdp = Atari(args.name, args.screen_width, args.screen_height,
-                        ends_at_life=True)
+        mdp = Atari(args.name, args.screen_width, args.screen_height,
+                    ends_at_life=True)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        if args.name != 'grid':
-            input_shape = (args.screen_height, args.screen_width,
-                           args.history_length)
-            input_preprocessor = [Scaler(
-                mdp.info.observation_space.high[0, 0])]
-        else:
-            input_shape = (mdp.info.observation_space.n,)
-            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
+        input_shape = (args.screen_height, args.screen_width,
+                       args.history_length)
+        input_preprocessor = [Scaler(
+            mdp.info.observation_space.high[0, 0])]
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=512 if args.name != 'grid' else 80,
+            n_features=512,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor,
             name='test',
@@ -173,17 +155,14 @@ def experiment(algorithm):
                        'epsilon': args.epsilon}
         )
 
-        if args.name != 'grid':
-            approximator = ConvNet
-        else:
-            approximator = SimpleNet
+        approximator = ConvNet
 
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
             n_approximators=args.n_approximators,
             history_length=args.history_length,
-            clip_reward=True if args.name != 'grid' else False,
+            clip_reward=True,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
@@ -198,13 +177,12 @@ def experiment(algorithm):
         core_test = Core(agent, mdp)
 
         # Evaluate model
-        if args.name != 'grid':
-            mdp.set_episode_end(ends_at_life=False)
+        mdp.set_episode_end(ends_at_life=False)
         pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset, args.name)
+        get_stats(dataset)
     else:
         # DQN learning run
 
@@ -231,29 +209,22 @@ def experiment(algorithm):
             max_steps = args.max_steps
 
         # MDP
-        if args.name == 'grid':
-            mdp = GridWorldVanHasselt()
-        else:
-            mdp = Atari(args.name, args.screen_width, args.screen_height,
-                        ends_at_life=True)
+        mdp = Atari(args.name, args.screen_width, args.screen_height,
+                    ends_at_life=True)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        if args.name != 'grid':
-            input_shape = (args.screen_height, args.screen_width,
-                           args.history_length)
-            input_preprocessor = [Scaler(
-                mdp.info.observation_space.high[0, 0])]
-        else:
-            input_shape = (mdp.info.observation_space.n,)
-            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
+        input_shape = (args.screen_height, args.screen_width,
+                       args.history_length)
+        input_preprocessor = [Scaler(
+            mdp.info.observation_space.high[0, 0])]
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=512 if args.name != 'grid' else 80,
+            n_features=512,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor,
             folder_name=folder_name,
@@ -263,10 +234,7 @@ def experiment(algorithm):
                        'epsilon': args.epsilon}
         )
 
-        if args.name != 'grid':
-            approximator = ConvNet
-        else:
-            approximator = SimpleNet
+        approximator = ConvNet
 
         # Agent
         algorithm_params = dict(
@@ -274,7 +242,7 @@ def experiment(algorithm):
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
-            clip_reward=True if args.name != 'grid' else False,
+            clip_reward=True,
             n_approximators=args.n_approximators,
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
@@ -309,16 +277,12 @@ def experiment(algorithm):
             agent.approximator.model.save()
 
         # Evaluate initial policy
-        if args.name != 'grid':
-            mdp.set_episode_end(ends_at_life=False)
+        mdp.set_episode_end(ends_at_life=False)
         pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        if args.name == 'grid':
-            scores += get_stats(dataset, args.name)
-        else:
-            scores.append(get_stats(dataset, args.name))
+        scores.append(get_stats(dataset))
         pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
@@ -326,8 +290,7 @@ def experiment(algorithm):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
-            if args.name != 'grid':
-                mdp.set_episode_end(ends_at_life=True)
+            mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
                        quiet=args.quiet)
@@ -337,17 +300,13 @@ def experiment(algorithm):
 
             print '- Evaluation:'
             # evaluation step
-            if args.name != 'grid':
-                mdp.set_episode_end(ends_at_life=False)
+            mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
             pi.set_eval(True)
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            if args.name == 'grid':
-                scores += get_stats(dataset, args.name)
-            else:
-                scores.append(get_stats(dataset, args.name))
+            scores.append(get_stats(dataset))
             pi.set_eval(False)
 
             np.save(folder_name + '/scores.npy', scores)
