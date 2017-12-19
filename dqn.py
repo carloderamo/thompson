@@ -20,7 +20,7 @@ class DQN(Agent):
         self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
         self._no_op_action_value = alg_params.get('no_op_action_value', 0)
         self._p_mask = alg_params.get('p_mask')
-        self._atari = alg_params.get('atari', False)
+        self._remove_history = alg_params.get('remove_history', False)
 
         self._replay_memory = ReplayMemory(
             mdp_info,
@@ -58,7 +58,7 @@ class DQN(Agent):
             state, action, reward, next_state, absorbing, _, mask =\
                 self._replay_memory.get(self._batch_size)
 
-            if not self._atari:
+            if self._remove_history:
                 state = state[..., 0]
                 next_state = next_state[..., 0]
 
@@ -112,7 +112,7 @@ class DQN(Agent):
         else:
             extended_state = self._buffer.get()
 
-            if not self._atari:
+            if self._remove_history:
                 extended_state = extended_state[..., 0]
 
             action = super(DQN, self).draw_action(extended_state)

@@ -132,15 +132,17 @@ def experiment(algorithm):
 
     # Evaluation of the model provided by the user.
     if args.load_path:
-        mdp = Gym(args.name, 200, .99)
+        if args.name == 'grid':
+            mdp = GridWorldGenerator('grid.txt')
+        else:
+            mdp = Gym(args.name, 200, .99)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
         if args.name == 'grid':
-            input_shape = (mdp.info.observation_space.n,) + (
-                args.history_length,)
+            input_shape = (mdp.info.observation_space.n,)
             input_preprocessor = [OneHot(mdp.info.observation_space.n)]
         else:
             input_shape = mdp.info.observation_space.shape
@@ -165,6 +167,7 @@ def experiment(algorithm):
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
+            remove_history=True if args.name != 'grid' else False,
             n_approximators=args.n_approximators,
             history_length=args.history_length,
             clip_reward=False,
@@ -213,15 +216,17 @@ def experiment(algorithm):
             max_steps = args.max_steps
 
         # MDP
-        mdp = Gym(args.name, 200, .99)
+        if args.name == 'grid':
+            mdp = GridWorldGenerator('grid.txt')
+        else:
+            mdp = Gym(args.name, 200, .99)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
         if args.name == 'grid':
-            input_shape = (mdp.info.observation_space.n,) + (
-                args.history_length,)
+            input_shape = (mdp.info.observation_space.n,)
             input_preprocessor = [OneHot(mdp.info.observation_space.n)]
         else:
             input_shape = mdp.info.observation_space.shape
@@ -247,6 +252,7 @@ def experiment(algorithm):
             batch_size=args.batch_size,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
+            remove_history=True if args.name != 'grid' else False,
             history_length=args.history_length,
             clip_reward=False,
             n_approximators=args.n_approximators,

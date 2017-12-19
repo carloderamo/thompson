@@ -16,4 +16,4 @@ class OneHot(Preprocessor):
         oh = np.zeros((len(x), self._n))
         oh[np.arange(len(x)), x.ravel().astype(np.int)] = 1.
 
-        return x
+        return oh

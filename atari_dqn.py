@@ -158,7 +158,6 @@ def experiment(algorithm):
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
-            atari=True,
             n_approximators=args.n_approximators,
             history_length=args.history_length,
             clip_reward=True,
@@ -238,7 +237,6 @@ def experiment(algorithm):
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
-            atari=True,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
