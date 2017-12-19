@@ -2,6 +2,7 @@ import argparse
 import datetime
 import os
 
+from joblib import Parallel, delayed
 import numpy as np
 import tensorflow as tf
 
@@ -209,7 +210,7 @@ def experiment(algorithm):
 
         # Summary folder
         folder_name = './logs/' + algorithm + '/' +\
-                      datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+                      datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f')
 
         # Settings
         if args.debug:
@@ -356,12 +357,11 @@ def experiment(algorithm):
 
 if __name__ == '__main__':
     algs = ['dqn', 'ddqn', 'wdqn']
-    n_experiments = 10
+    n_experiments = 2
 
     for a in algs:
-        s = list()
-        for _ in xrange(n_experiments):
-            s.append(experiment(a))
-            tf.reset_default_graph()
+        out = Parallel(n_jobs=-1)(
+            delayed(experiment)(a) for _ in xrange(n_experiments))
+        tf.reset_default_graph()
 
-        np.save('logs/' + a + '/scores.npy', s)
+        np.save('logs/' + a + '/scores.npy', out)
