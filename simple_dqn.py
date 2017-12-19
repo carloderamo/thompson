@@ -7,13 +7,13 @@ import numpy as np
 import tensorflow as tf
 
 from mushroom.core.core import Core
-from mushroom.environments import Atari
+from mushroom.environments import *
 from mushroom.utils.dataset import compute_J, compute_scores
-from mushroom.utils.preprocessor import Scaler
 
-from convnet import ConvNet
 from dqn import DQN, DoubleDQN, WeightedDQN
+from prepro import OneHot
 from policy import BootPolicy
+from simple_net import SimpleNet
 
 
 """
@@ -31,12 +31,21 @@ def print_epoch(epoch):
     print '----------------------------------------------------------------'
 
 
-def get_stats(dataset):
-    score = compute_scores(dataset)
-    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          ' games_completed: %d' % score)
+def get_stats(dataset, name):
+    if name == 'grid':
+        abs_count = 0
+        rewards = list()
+        for d in dataset:
+            rewards.append(d[2])
+            abs_count += d[4]
+        print('Goal reached: %d' % abs_count)
 
-    return score
+        return rewards
+    else:
+        J = np.mean(compute_J(dataset, 1.))
+        print('J: %f' % J)
+
+        return J
 
 
 def experiment(algorithm):
@@ -48,12 +57,8 @@ def experiment(algorithm):
     arg_game = parser.add_argument_group('Game')
     arg_game.add_argument("--name",
                           type=str,
-                          default='BreakoutDeterministic-v4',
+                          default='grid',
                           help='Gym ID of the Atari game.')
-    arg_game.add_argument("--screen-width", type=int, default=84,
-                          help='Width of the game screen.')
-    arg_game.add_argument("--screen-height", type=int, default=84,
-                          help='Height of the game screen.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
@@ -127,22 +132,24 @@ def experiment(algorithm):
 
     # Evaluation of the model provided by the user.
     if args.load_path:
-        mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+        mdp = Gym(args.name, 200, .99)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
-        input_preprocessor = [Scaler(
-            mdp.info.observation_space.high[0, 0])]
+        if args.name == 'grid':
+            input_shape = (mdp.info.observation_space.n,) + (
+                args.history_length,)
+            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
+        else:
+            input_shape = mdp.info.observation_space.shape
+            input_preprocessor = list()
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=512,
+            n_features=80,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor,
             name='test',
@@ -153,15 +160,14 @@ def experiment(algorithm):
                        'epsilon': args.epsilon}
         )
 
-        approximator = ConvNet
+        approximator = SimpleNet
 
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
-            atari=True,
             n_approximators=args.n_approximators,
             history_length=args.history_length,
-            clip_reward=True,
+            clip_reward=False,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
@@ -176,12 +182,11 @@ def experiment(algorithm):
         core_test = Core(agent, mdp)
 
         # Evaluate model
-        mdp.set_episode_end(ends_at_life=False)
         pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset)
+        get_stats(dataset, args.name)
     else:
         # DQN learning run
 
@@ -208,22 +213,24 @@ def experiment(algorithm):
             max_steps = args.max_steps
 
         # MDP
-        mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+        mdp = Gym(args.name, 200, .99)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
-        input_preprocessor = [Scaler(
-            mdp.info.observation_space.high[0, 0])]
+        if args.name == 'grid':
+            input_shape = (mdp.info.observation_space.n,) + (
+                args.history_length,)
+            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
+        else:
+            input_shape = mdp.info.observation_space.shape
+            input_preprocessor = list()
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=512,
+            n_features=80,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor,
             folder_name=folder_name,
@@ -233,16 +240,15 @@ def experiment(algorithm):
                        'epsilon': args.epsilon}
         )
 
-        approximator = ConvNet
+        approximator = SimpleNet
 
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
-            atari=True,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
-            clip_reward=True,
+            clip_reward=False,
             n_approximators=args.n_approximators,
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
@@ -277,12 +283,11 @@ def experiment(algorithm):
             agent.approximator.model.save()
 
         # Evaluate initial policy
-        mdp.set_episode_end(ends_at_life=False)
         pi.set_eval(True)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        scores.append(get_stats(dataset))
+        scores.append(get_stats(dataset, args.name))
         pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
@@ -290,7 +295,6 @@ def experiment(algorithm):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
-            mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
                        quiet=args.quiet)
@@ -300,13 +304,12 @@ def experiment(algorithm):
 
             print '- Evaluation:'
             # evaluation step
-            mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
             pi.set_eval(True)
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            scores.append(get_stats(dataset))
+            scores.append(get_stats(dataset, args.name))
             pi.set_eval(False)
 
             np.save(folder_name + '/scores.npy', scores)
