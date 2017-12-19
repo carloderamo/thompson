@@ -319,7 +319,7 @@ def experiment(algorithm):
 
 if __name__ == '__main__':
     algs = ['dqn', 'ddqn', 'wdqn']
-    n_experiments = 1
+    n_experiments = 10
 
     for a in algs:
         out = Parallel(n_jobs=-1)(
