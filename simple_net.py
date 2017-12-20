@@ -111,6 +111,7 @@ class SimpleNet:
                     tf.float32, shape=[None, convnet_pars['n_approximators']])
 
             self._features = list()
+            self._features2 = list()
             self._q = list()
             self._q_acted = list()
             for i in xrange(convnet_pars['n_approximators']):
@@ -122,8 +123,15 @@ class SimpleNet:
                         bias_initializer=tf.glorot_uniform_initializer(),
                         name='features_' + str(i)
                     ))
+                    self._features2.append(tf.layers.dense(
+                        self._features[i], convnet_pars['n_features'],
+                        activation=tf.nn.relu,
+                        kernel_initializer=tf.glorot_uniform_initializer(),
+                        bias_initializer=tf.glorot_uniform_initializer(),
+                        name='features2_' + str(i)
+                    ))
                     self._q.append(tf.layers.dense(
-                        self._features[i],
+                        self._features2[i],
                         convnet_pars['output_shape'][0],
                         kernel_initializer=tf.glorot_uniform_initializer(),
                         bias_initializer=tf.glorot_uniform_initializer(),
