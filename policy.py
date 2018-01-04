@@ -39,4 +39,4 @@ class BootPolicy(TDPolicy):
         self._evaluation = eval
 
     def set_idx(self, idx):
-        self_idx = idx
+        self._idx = idx
