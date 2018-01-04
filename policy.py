@@ -10,12 +10,12 @@ class BootPolicy(TDPolicy):
         self._n_approximators = n_approximators
         self._epsilon = epsilon
         self._evaluation = False
+        self._idx = np.random.randint(self._n_approximators)
 
     def draw_action(self, state):
         if not np.random.uniform() < self._epsilon(state):
             if not self._evaluation:
-                idx = np.random.randint(self._n_approximators)
-                q = self._approximator.predict(state, idx=idx)
+                q = self._approximator.predict(state, idx=self._idx)
 
                 max_a = np.argwhere(q == np.max(q)).ravel()
                 if len(max_a) > 1:
@@ -37,3 +37,6 @@ class BootPolicy(TDPolicy):
 
     def set_eval(self, eval):
         self._evaluation = eval
+
+    def set_idx(self, idx):
+        self_idx = idx
