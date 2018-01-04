@@ -9,6 +9,7 @@ import tensorflow as tf
 from mushroom.core.core import Core
 from mushroom.environments import Atari
 from mushroom.utils.dataset import compute_J, compute_scores
+from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
 
 from convnet import ConvNet
@@ -97,6 +98,16 @@ def experiment(algorithm):
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
                          help='Total number of learning steps.')
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
+                         help='Number of steps until the exploration rate stops'
+                              'decreasing.')
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
+                         help='Initial value of the exploration rate.')
+    arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
+                         help='Final value of the exploration rate. When it'
+                              'reaches this values, it stays constant.')
+    arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
+                         help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
@@ -131,7 +142,8 @@ def experiment(algorithm):
                     ends_at_life=True)
 
         # Policy
-        pi = BootPolicy(args.n_approximators)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
+        pi = BootPolicy(args.n_approximators, epsilon=epsilon_test)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -175,8 +187,9 @@ def experiment(algorithm):
         core_test = Core(agent, mdp)
 
         # Evaluate model
-        mdp.set_episode_end(ends_at_life=False)
+        pi.set_epsilon(epsilon_test)
         pi.set_eval(True)
+        mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
@@ -211,7 +224,12 @@ def experiment(algorithm):
                     ends_at_life=True)
 
         # Policy
-        pi = BootPolicy(args.n_approximators)
+        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
+                                       min_value=args.final_exploration_rate,
+                                       n=args.final_exploration_frame)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
+        epsilon_random = Parameter(value=1)
+        pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -275,8 +293,9 @@ def experiment(algorithm):
             agent.approximator.model.save()
 
         # Evaluate initial policy
-        mdp.set_episode_end(ends_at_life=False)
         pi.set_eval(True)
+        pi.set_epsilon(epsilon_test)
+        mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
@@ -288,6 +307,7 @@ def experiment(algorithm):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
+            pi.set_epsilon(epsilon)
             mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
@@ -298,6 +318,7 @@ def experiment(algorithm):
 
             print '- Evaluation:'
             # evaluation step
+            pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
             pi.set_eval(True)
