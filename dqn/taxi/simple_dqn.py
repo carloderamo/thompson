@@ -11,7 +11,7 @@ from mushroom.environments import *
 from mushroom.utils.dataset import compute_J, compute_scores
 from mushroom.utils.parameters import Parameter
 
-from dqn import DQN, DoubleDQN, WeightedDQN
+from dqn.dqn import DQN, DoubleDQN, WeightedDQN
 from prepro import OneHot
 from policy import BootPolicy
 from simple_net import SimpleNet

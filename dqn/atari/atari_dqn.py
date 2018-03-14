@@ -13,7 +13,7 @@ from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
 
 from convnet import ConvNet
-from dqn import DQN, DoubleDQN, WeightedDQN
+from dqn.dqn import DQN, DoubleDQN, WeightedDQN
 from policy import BootPolicy
 
 
