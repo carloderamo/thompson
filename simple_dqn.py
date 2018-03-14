@@ -9,6 +9,7 @@ import tensorflow as tf
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.utils.dataset import compute_J, compute_scores
+from mushroom.utils.parameters import Parameter
 
 from dqn import DQN, DoubleDQN, WeightedDQN
 from prepro import OneHot
@@ -135,7 +136,7 @@ def experiment(algorithm):
         if args.name == 'grid':
             mdp = GridWorldGenerator('grid.txt')
         else:
-            mdp = Gym(args.name, 200, .99)
+            mdp = Gym(args.name, 1000, .99)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
@@ -151,7 +152,7 @@ def experiment(algorithm):
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=80,
+            n_features=128,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor,
             name='test',
@@ -216,10 +217,10 @@ def experiment(algorithm):
         if args.name == 'grid':
             mdp = GridWorldGenerator('grid.txt')
         else:
-            mdp = Gym(args.name, 200, .99)
+            mdp = Gym(args.name, 1000, .99)
 
-        # Policy
-        pi = BootPolicy(args.n_approximators)
+        eps = Parameter(0)
+        pi = BootPolicy(args.n_approximators, eps)
 
         # Approximator
         if args.name == 'grid':
@@ -259,17 +260,19 @@ def experiment(algorithm):
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
         )
-        fit_params = dict()
-        agent_params = {'approximator_params': approximator_params,
-                        'algorithm_params': algorithm_params,
-                        'fit_params': fit_params}
 
         if algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.info, agent_params)
+            agent = DQN(approximator, pi, mdp.info,
+                        approximator_params=approximator_params,
+                        **algorithm_params)
         elif algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
+            agent = DoubleDQN(approximator, pi, mdp.info,
+                              approximator_params=approximator_params,
+                              **algorithm_params)
         elif algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.info, agent_params)
+            agent = WeightedDQN(approximator, pi, mdp.info,
+                                approximator_params=approximator_params,
+                                **algorithm_params)
 
         # Algorithm
         core = Core(agent, mdp)
