@@ -117,7 +117,7 @@ class SimpleNet:
             for i in xrange(convnet_pars['n_approximators']):
                 with tf.variable_scope('head_' + str(i)):
                     self._features.append(tf.layers.dense(
-                        self._x, convnet_pars['n_features'],
+                        self._x[..., 0], convnet_pars['n_features'],
                         activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
                         bias_initializer=tf.glorot_uniform_initializer(),

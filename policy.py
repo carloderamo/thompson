@@ -1,10 +1,14 @@
 import numpy as np
 
 from mushroom.policy.td_policy import TDPolicy
+from mushroom.utils.parameters import Parameter
 
 
 class BootPolicy(TDPolicy):
-    def __init__(self, n_approximators, epsilon):
+    def __init__(self, n_approximators, epsilon=None):
+        if epsilon is None:
+            epsilon = Parameter(0.)
+
         super(BootPolicy, self).__init__()
 
         self._n_approximators = n_approximators

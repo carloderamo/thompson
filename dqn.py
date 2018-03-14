@@ -62,10 +62,6 @@ class DQN(Agent):
             state, action, reward, next_state, absorbing, _, mask =\
                 self._replay_memory.get(self._batch_size)
 
-            if self._remove_history:
-                state = state[..., 0]
-                next_state = next_state[..., 0]
-
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
@@ -74,7 +70,7 @@ class DQN(Agent):
                                1) + self.mdp_info.gamma * q_next
 
             self.approximator.fit(state, action, q, mask=mask,
-                                  **self.params['fit_params'])
+                                  **self._fit_params)
 
             self._n_updates += 1
 
@@ -115,9 +111,6 @@ class DQN(Agent):
             action = np.array([self._no_op_action_value])
         else:
             extended_state = self._buffer.get()
-
-            if self._remove_history:
-                extended_state = extended_state[..., 0]
 
             action = super(DQN, self).draw_action(extended_state)
 

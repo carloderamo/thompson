@@ -32,21 +32,11 @@ def print_epoch(epoch):
     print '----------------------------------------------------------------'
 
 
-def get_stats(dataset, name):
-    if name == 'grid':
-        abs_count = 0
-        rewards = list()
-        for d in dataset:
-            rewards.append(d[2])
-            abs_count += d[4]
-        print('Goal reached: %d' % abs_count)
+def get_stats(dataset):
+    J = np.mean(compute_J(dataset, 1.))
+    print('J: %f' % J)
 
-        return rewards
-    else:
-        J = np.mean(compute_J(dataset, 1.))
-        print('J: %f' % J)
-
-        return J
+    return J
 
 
 def experiment(algorithm):
@@ -55,12 +45,6 @@ def experiment(algorithm):
     # Argument parser
     parser = argparse.ArgumentParser()
 
-    arg_game = parser.add_argument_group('Game')
-    arg_game.add_argument("--name",
-                          type=str,
-                          default='grid',
-                          help='Gym ID of the Atari game.')
-
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
                          help='Initial size of the replay memory.')
@@ -68,6 +52,7 @@ def experiment(algorithm):
                          help='Max size of the replay memory.')
 
     arg_net = parser.add_argument_group('Deep Q-Network')
+    arg_net.add_argument("--n-features", type=int, default=80)
     arg_net.add_argument("--optimizer",
                          choices=['adadelta',
                                   'adam',
@@ -90,7 +75,7 @@ def experiment(algorithm):
                               "Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
-    arg_alg.add_argument("--history-length", type=int, default=4,
+    arg_alg.add_argument("--history-length", type=int, default=1,
                          help='Number of frames composing a state.')
     arg_alg.add_argument("--target-update-frequency", type=int, default=10000,
                          help='Number of learning step before each update of'
@@ -133,26 +118,19 @@ def experiment(algorithm):
 
     # Evaluation of the model provided by the user.
     if args.load_path:
-        if args.name == 'grid':
-            mdp = GridWorldGenerator('grid.txt')
-        else:
-            mdp = Gym(args.name, 1000, .99)
+        mdp = Gym('Acrobot-v1', 1000, .99)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        if args.name == 'grid':
-            input_shape = (mdp.info.observation_space.n,)
-            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
-        else:
-            input_shape = mdp.info.observation_space.shape
-            input_preprocessor = list()
+        input_shape = mdp.info.observation_space.shape + (args.history_length,)
+        input_preprocessor = list()
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=128,
+            n_features=args.n_features,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor,
             name='test',
@@ -168,7 +146,6 @@ def experiment(algorithm):
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
-            remove_history=True if args.name != 'grid' else False,
             n_approximators=args.n_approximators,
             history_length=args.history_length,
             clip_reward=False,
@@ -187,7 +164,7 @@ def experiment(algorithm):
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset, args.name)
+        get_stats(dataset)
     else:
         # DQN learning run
 
@@ -214,26 +191,18 @@ def experiment(algorithm):
             max_steps = args.max_steps
 
         # MDP
-        if args.name == 'grid':
-            mdp = GridWorldGenerator('grid.txt')
-        else:
-            mdp = Gym(args.name, 1000, .99)
+        mdp = Gym('Acrobot-v1', 1000, .99)
 
-        eps = Parameter(0)
-        pi = BootPolicy(args.n_approximators, eps)
+        pi = BootPolicy(args.n_approximators)
 
         # Approximator
-        if args.name == 'grid':
-            input_shape = (mdp.info.observation_space.n,)
-            input_preprocessor = [OneHot(mdp.info.observation_space.n)]
-        else:
-            input_shape = mdp.info.observation_space.shape
-            input_preprocessor = list()
+        input_shape = mdp.info.observation_space.shape + (args.history_length,)
+        input_preprocessor = list()
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=80,
+            n_features=args.n_features,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor,
             folder_name=folder_name,
@@ -250,7 +219,6 @@ def experiment(algorithm):
             batch_size=args.batch_size,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
-            remove_history=True if args.name != 'grid' else False,
             history_length=args.history_length,
             clip_reward=False,
             n_approximators=args.n_approximators,
@@ -293,7 +261,7 @@ def experiment(algorithm):
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        scores.append(get_stats(dataset, args.name))
+        scores.append(get_stats(dataset))
         pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
@@ -315,7 +283,7 @@ def experiment(algorithm):
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            scores.append(get_stats(dataset, args.name))
+            scores.append(get_stats(dataset))
             pi.set_eval(False)
 
             np.save(folder_name + '/scores.npy', scores)
@@ -325,7 +293,7 @@ def experiment(algorithm):
 
 if __name__ == '__main__':
     algs = ['dqn', 'ddqn', 'wdqn']
-    n_experiments = 10
+    n_experiments = 1
 
     for a in algs:
         out = Parallel(n_jobs=-1)(
