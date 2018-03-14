@@ -175,11 +175,8 @@ def experiment(algorithm):
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
         )
-        fit_params = dict()
-        agent_params = {'approximator_params': approximator_params,
-                        'algorithm_params': algorithm_params,
-                        'fit_params': fit_params}
-        agent = DQN(approximator, pi, mdp.info, agent_params)
+        agent = DQN(approximator, pi, mdp.info,
+                    approximator_params=approximator_params, **algorithm_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
