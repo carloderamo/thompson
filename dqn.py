@@ -9,35 +9,39 @@ from replay_memory import Buffer, ReplayMemory
 
 
 class DQN(Agent):
-    def __init__(self, approximator, policy, mdp_info, params):
-        alg_params = params['algorithm_params']
-        self._batch_size = alg_params.get('batch_size')
-        self._clip_reward = alg_params.get('clip_reward', True)
-        self._n_approximators = alg_params.get('n_approximators')
-        self._train_frequency = alg_params.get('train_frequency')
-        self._target_update_frequency = alg_params.get(
-            'target_update_frequency')
-        self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
-        self._no_op_action_value = alg_params.get('no_op_action_value', 0)
-        self._p_mask = alg_params.get('p_mask')
-        self._remove_history = alg_params.get('remove_history', False)
+    def __init__(self, approximator, policy, mdp_info, batch_size,
+                 train_frequency, target_update_frequency, initial_replay_size,
+                 max_replay_size, fit_params=None, approximator_params=None,
+                 n_approximators=1, history_length=1, clip_reward=True,
+                 max_no_op_actions=0, no_op_action_value=0, p_mask=2 / 3.):
+        self._fit_params = dict() if fit_params is None else fit_params
+
+        self._batch_size = batch_size
+        self._n_approximators = n_approximators
+        self._clip_reward = clip_reward
+        self._train_frequency = train_frequency
+        self._target_update_frequency = target_update_frequency
+        self._max_no_op_actions = max_no_op_actions
+        self._no_op_action_value = no_op_action_value
+
+        self._replay_memory = ReplayMemory(mdp_info, initial_replay_size,
+                                           max_replay_size, history_length)
+        self._buffer = Buffer(size=history_length)
+        self._p_mask = p_mask
 
         self._replay_memory = ReplayMemory(
-            mdp_info,
-            alg_params.get('initial_replay_size'),
-            alg_params.get('max_replay_size'),
-            alg_params.get('history_length', 1),
-            alg_params.get('n_approximators')
+            mdp_info, initial_replay_size, max_replay_size, history_length,
+            n_approximators
         )
-        self._buffer = Buffer(size=alg_params.get('history_length', 1))
+        self._buffer = Buffer(size=history_length)
 
         self._n_updates = 0
         self._episode_steps = 0
         self._no_op_actions = None
 
-        apprx_params_train = deepcopy(params['approximator_params'])
+        apprx_params_train = deepcopy(approximator_params)
         apprx_params_train['name'] = 'train'
-        apprx_params_target = deepcopy(params['approximator_params'])
+        apprx_params_target = deepcopy(approximator_params)
         apprx_params_target['name'] = 'target'
         self.approximator = Regressor(approximator, **apprx_params_train)
         self.target_approximator = Regressor(approximator,
@@ -47,7 +51,7 @@ class DQN(Agent):
         self.target_approximator.model.set_weights(
             self.approximator.model.get_weights())
 
-        super(DQN, self).__init__(policy, mdp_info, params)
+        super(DQN, self).__init__(policy, mdp_info)
 
     def fit(self, dataset):
         mask = np.random.binomial(1, self._p_mask,
