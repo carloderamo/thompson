@@ -66,18 +66,17 @@ class WeightedPolicy(TDPolicy):
 
             samples = np.random.normal(mean_q, sigma_q)
 
-            return np.array([np.argmax(samples)])
+            max_a = np.array([np.argmax(samples)])
         else:
-            q_list = list()
             for q in self._approximator.model:
-                q_list.append(q.predict(state))
+                all_q.append(q.predict(state))
 
-            max_as, count = np.unique(np.argmax(q_list, axis=1),
+            max_as, count = np.unique(np.argmax(all_q, axis=1),
                                       return_counts=True)
             max_a = np.array([max_as[np.random.choice(
                 np.argwhere(count == np.max(count)).ravel())]])
 
-            return max_a
+        return max_a
 
     def set_eval(self, eval):
         self._evaluation = eval
