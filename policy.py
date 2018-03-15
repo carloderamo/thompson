@@ -54,7 +54,6 @@ class WeightedPolicy(TDPolicy):
 
         self._n_approximators = n_approximators
         self._evaluation = False
-        self._precision = 1000
 
     def draw_action(self, state):
         all_q = list()
@@ -65,16 +64,9 @@ class WeightedPolicy(TDPolicy):
             mean_q = np.mean(all_q, 0)
             sigma_q = np.std(all_q, 0)
 
-            samples = np.random.normal(np.repeat([mean_q], self._precision, 0),
-                                       np.repeat([sigma_q], self._precision, 0))
-            max_idx = np.argmax(samples, axis=1)
-            max_idx, max_count = np.unique(max_idx, return_counts=True)
-            count = np.zeros(mean_q.size)
-            count[max_idx] = max_count
+            samples = np.random.normal(mean_q, sigma_q)
 
-            w = count / self._precision
-
-            return np.array([np.random.choice(np.arange(len(all_q[0])), p=w)])
+            return np.argmax(samples)
         else:
             q_list = list()
             for q in self._approximator.model:
