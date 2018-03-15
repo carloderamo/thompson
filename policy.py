@@ -26,8 +26,11 @@ class BootPolicy(TDPolicy):
                     max_a = np.array([np.random.choice(max_a)])
             else:
                 q_list = list()
-                for q in self._approximator.model:
-                    q_list.append(q.predict(state))
+                if isinstance(self._approximator.model, list):
+                    for q in self._approximator.model:
+                        q_list.append(q.predict(state))
+                else:
+                    q_list = self._approximator.predict(state).squeeze()
 
                 max_as, count = np.unique(np.argmax(q_list, axis=1),
                                           return_counts=True)

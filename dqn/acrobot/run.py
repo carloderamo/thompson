@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import os
+import sys
 
 from joblib import Parallel, delayed
 import numpy as np
@@ -9,12 +10,12 @@ import tensorflow as tf
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.utils.dataset import compute_J, compute_scores
-from mushroom.utils.parameters import Parameter
 
-from dqn.dqn import DQN, DoubleDQN, WeightedDQN
-from prepro import OneHot
-from policy import BootPolicy
-from simple_net import SimpleNet
+sys.path.append('..')
+sys.path.append('../..')
+from dqn import DQN
+from policy import BootPolicy, WeightedPolicy
+from net import SimpleNet
 
 
 """
@@ -39,16 +40,16 @@ def get_stats(dataset):
     return J
 
 
-def experiment(algorithm):
+def experiment(policy):
     np.random.seed()
 
     # Argument parser
     parser = argparse.ArgumentParser()
 
     arg_mem = parser.add_argument_group('Replay Memory')
-    arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
+    arg_mem.add_argument("--initial-replay-size", type=int, default=5000,
                          help='Initial size of the replay memory.')
-    arg_mem.add_argument("--max-replay-size", type=int, default=500000,
+    arg_mem.add_argument("--max-replay-size", type=int, default=50000,
                          help='Max size of the replay memory.')
 
     arg_net = parser.add_argument_group('Deep Q-Network')
@@ -77,20 +78,20 @@ def experiment(algorithm):
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=1,
                          help='Number of frames composing a state.')
-    arg_alg.add_argument("--target-update-frequency", type=int, default=10000,
+    arg_alg.add_argument("--target-update-frequency", type=int, default=100,
                          help='Number of learning step before each update of'
                               'the target network.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=250000,
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=5000,
                          help='Number of learning step before each evaluation.'
                               'This number represents an epoch.')
     arg_alg.add_argument("--train-frequency", type=int, default=4,
                          help='Number of learning steps before each fit of the'
                               'neural network.')
-    arg_alg.add_argument("--max-steps", type=int, default=50000000,
+    arg_alg.add_argument("--max-steps", type=int, default=250000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--test-samples", type=int, default=125000,
+    arg_alg.add_argument("--test-samples", type=int, default=5000,
                          help='Number of steps for each evaluation.')
-    arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
+    arg_alg.add_argument("--max-no-op-actions", type=int, default=0,
                          help='Maximum number of no-op action performed at the'
                               'beginning of the episodes. The minimum number is'
                               'history_length.')
@@ -169,7 +170,7 @@ def experiment(algorithm):
         # DQN learning run
 
         # Summary folder
-        folder_name = './logs/' + algorithm + '/' +\
+        folder_name = './logs/' + policy + '/' +\
                       datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f')
 
         # Settings
@@ -193,7 +194,12 @@ def experiment(algorithm):
         # MDP
         mdp = Gym('Acrobot-v1', 1000, .99)
 
-        pi = BootPolicy(args.n_approximators)
+        if policy == 'boot':
+            pi = BootPolicy(args.n_approximators)
+        elif policy == 'weighted':
+            pi = WeightedPolicy(args.n_approximators)
+        else:
+            raise ValueError
 
         # Approximator
         input_shape = mdp.info.observation_space.shape + (args.history_length,)
@@ -229,18 +235,9 @@ def experiment(algorithm):
             p_mask=args.p_mask
         )
 
-        if algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.info,
-                        approximator_params=approximator_params,
-                        **algorithm_params)
-        elif algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.info,
-                              approximator_params=approximator_params,
-                              **algorithm_params)
-        elif algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.info,
-                                approximator_params=approximator_params,
-                                **algorithm_params)
+        agent = DQN(approximator, pi, mdp.info,
+                    approximator_params=approximator_params,
+                    **algorithm_params)
 
         # Algorithm
         core = Core(agent, mdp)
@@ -292,12 +289,12 @@ def experiment(algorithm):
 
 
 if __name__ == '__main__':
-    algs = ['dqn', 'ddqn', 'wdqn']
+    policy = ['boot', 'weighted']
     n_experiments = 1
 
-    for a in algs:
+    for p in policy:
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(a) for _ in xrange(n_experiments))
+            delayed(experiment)(p) for _ in xrange(n_experiments))
         tf.reset_default_graph()
 
-        np.save('logs/' + a + '/scores.npy', out)
+        np.save('logs/' + p + '/scores.npy', out)
