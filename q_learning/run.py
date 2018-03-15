@@ -40,13 +40,14 @@ def experiment(n_approximators, policy):
     dataset = collect_dataset.get()
     _, _, reward, _, _, _ = parse_dataset(dataset)
     pi.set_eval(True)
-    reward_test = core.evaluate(n_steps=1000, quiet=True)
+    dataset = core.evaluate(n_steps=1000, quiet=True)
+    reward_test = [r[2] for r in dataset]
 
     return reward, reward_test
 
 
 if __name__ == '__main__':
-    n_experiment = 4
+    n_experiment = 10
     n_approximators = 10
 
     policy_name = {BootPolicy: 'Boot', WeightedPolicy: 'Weighted'}
