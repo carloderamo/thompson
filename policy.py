@@ -66,7 +66,7 @@ class WeightedPolicy(TDPolicy):
 
             samples = np.random.normal(mean_q, sigma_q)
 
-            return np.argmax(samples)
+            return np.array([np.argmax(samples)])
         else:
             q_list = list()
             for q in self._approximator.model:
