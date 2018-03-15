@@ -71,10 +71,14 @@ class WeightedPolicy(TDPolicy):
 
             max_a = np.array([np.argmax(samples)])
         else:
-            for q in self._approximator.model:
-                all_q.append(q.predict(state))
+            q_list = list()
+            if isinstance(self._approximator.model, list):
+                for q in self._approximator.model:
+                    q_list.append(q.predict(state))
+            else:
+                q_list = self._approximator.predict(state).squeeze()
 
-            max_as, count = np.unique(np.argmax(all_q, axis=1),
+            max_as, count = np.unique(np.argmax(q_list, axis=1),
                                       return_counts=True)
             max_a = np.array([max_as[np.random.choice(
                 np.argwhere(count == np.max(count)).ravel())]])
