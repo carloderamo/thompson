@@ -34,13 +34,15 @@ def experiment(n_approximators, policy):
     core = Core(agent, mdp, callbacks)
 
     # Train
-    n_steps = 3e5
+    n_steps = 3e1
     core.learn(n_steps=n_steps, n_steps_per_fit=1, quiet=True)
 
     dataset = collect_dataset.get()
     _, _, reward, _, _, _ = parse_dataset(dataset)
+    pi.set_eval(True)
+    reward_test = core.evaluate(n_steps=1000, quiet=True)
 
-    return reward
+    return reward, reward_test
 
 
 if __name__ == '__main__':
@@ -52,4 +54,7 @@ if __name__ == '__main__':
         out = Parallel(n_jobs=-1)(delayed(experiment)(
             n_approximators, p) for _ in range(n_experiment))
 
-        np.save('r_%s.npy' % policy_name[p], out)
+        r = [x[0] for x in out]
+        r_test = [x[1] for x in out]
+        np.save('r_%s.npy' % policy_name[p], r)
+        np.save('r_test_%s.npy' % policy_name[p], r)
