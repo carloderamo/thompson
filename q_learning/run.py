@@ -34,7 +34,7 @@ def experiment(n_approximators, policy):
     core = Core(agent, mdp, callbacks)
 
     # Train
-    n_steps = 3e1
+    n_steps = 3e5
     core.learn(n_steps=n_steps, n_steps_per_fit=1, quiet=True)
 
     dataset = collect_dataset.get()
@@ -57,4 +57,4 @@ if __name__ == '__main__':
         r = [x[0] for x in out]
         r_test = [x[1] for x in out]
         np.save('r_%s.npy' % policy_name[p], r)
-        np.save('r_test_%s.npy' % policy_name[p], r)
+        np.save('r_test_%s.npy' % policy_name[p], r_test)
