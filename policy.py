@@ -65,7 +65,7 @@ class WeightedPolicy(TDPolicy):
                 all_q.append(self._approximator.predict(state, idx=i))
 
             mean_q = np.mean(all_q, 0)
-            sigma_q = np.std(all_q, 0, ddof=1) / np.sqrt(self._n_approximators)
+            sigma_q = np.std(all_q, 0, ddof=1)
 
             samples = np.random.normal(mean_q, sigma_q)
 
