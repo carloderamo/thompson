@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import os
+import sys
 
 from joblib import Parallel, delayed
 import numpy as np
@@ -12,9 +13,11 @@ from mushroom.utils.dataset import compute_J, compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
 
-from convnet import ConvNet
-from dqn.dqn import DQN, DoubleDQN, WeightedDQN
-from policy import BootPolicy
+sys.path.append('..')
+sys.path.append('../..')
+from dqn import DQN
+from policy import BootPolicy, WeightedPolicy
+from net import ConvNet
 
 
 """
@@ -40,7 +43,7 @@ def get_stats(dataset):
     return score
 
 
-def experiment(algorithm):
+def experiment(policy):
     np.random.seed()
 
     # Argument parser
@@ -98,16 +101,6 @@ def experiment(algorithm):
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
-                         help='Number of steps until the exploration rate stops'
-                              'decreasing.')
-    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
-                         help='Initial value of the exploration rate.')
-    arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
-                         help='Final value of the exploration rate. When it'
-                              'reaches this values, it stays constant.')
-    arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
-                         help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
@@ -116,7 +109,7 @@ def experiment(algorithm):
                               'history_length.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
-    arg_alg.add_argument("--p-mask", type=float, default=2 / 3.)
+    arg_alg.add_argument("--p-mask", type=float, default=1.)
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--load-path', type=str,
@@ -198,7 +191,7 @@ def experiment(algorithm):
         # DQN learning run
 
         # Summary folder
-        folder_name = './logs/' + algorithm + '/' +\
+        folder_name = './logs/' + policy + '/' +\
                       datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f')
 
         # Settings
@@ -224,12 +217,12 @@ def experiment(algorithm):
                     ends_at_life=True)
 
         # Policy
-        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
-                                       min_value=args.final_exploration_rate,
-                                       n=args.final_exploration_frame)
-        epsilon_test = Parameter(value=args.test_exploration_rate)
-        epsilon_random = Parameter(value=1)
-        pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
+        if policy == 'boot':
+            pi = BootPolicy(args.n_approximators)
+        elif policy == 'weighted':
+            pi = WeightedPolicy(args.n_approximators)
+        else:
+            raise ValueError
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -266,17 +259,10 @@ def experiment(algorithm):
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
         )
-        fit_params = dict()
-        agent_params = {'approximator_params': approximator_params,
-                        'algorithm_params': algorithm_params,
-                        'fit_params': fit_params}
 
-        if algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.info, agent_params)
-        elif algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
-        elif algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.info, agent_params)
+        agent = DQN(approximator, pi, mdp.info,
+                    approximator_params=approximator_params,
+                    **algorithm_params)
 
         # Algorithm
         core = Core(agent, mdp)
@@ -294,7 +280,6 @@ def experiment(algorithm):
 
         # Evaluate initial policy
         pi.set_eval(True)
-        pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
@@ -307,7 +292,6 @@ def experiment(algorithm):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
-            pi.set_epsilon(epsilon)
             mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
@@ -318,7 +302,6 @@ def experiment(algorithm):
 
             print '- Evaluation:'
             # evaluation step
-            pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
             pi.set_eval(True)
@@ -334,12 +317,12 @@ def experiment(algorithm):
 
 
 if __name__ == '__main__':
-    algs = ['dqn', 'ddqn', 'wdqn']
+    policy = ['boot', 'weighted']
     n_experiments = 1
 
-    for a in algs:
+    for p in policy:
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(a) for _ in xrange(n_experiments))
+            delayed(experiment)(p) for _ in xrange(n_experiments))
         tf.reset_default_graph()
 
-        np.save('logs/' + a + '/scores.npy', out)
+        np.save('logs/' + p + '/scores.npy', out)
