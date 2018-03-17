@@ -109,6 +109,8 @@ def experiment(policy):
     arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
                          help='Final value of the exploration rate. When it'
                               'reaches this values, it stays constant.')
+    arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
+                         help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
@@ -228,6 +230,7 @@ def experiment(policy):
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
                                        min_value=args.final_exploration_rate,
                                        n=args.final_exploration_frame)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
         epsilon_random = Parameter(value=1.)
 
         if policy == 'boot':
@@ -291,11 +294,9 @@ def experiment(policy):
         if args.save:
             agent.approximator.model.save()
 
-        # Initialize learning epsilon
-        pi.set_epsilon(epsilon)
-
         # Evaluate initial policy
         pi.set_eval(True)
+        pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
@@ -308,6 +309,7 @@ def experiment(policy):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
+            pi.set_epsilon(epsilon)
             mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
@@ -318,6 +320,7 @@ def experiment(policy):
 
             print '- Evaluation:'
             # evaluation step
+            pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)
             core_test.reset()
             pi.set_eval(True)
