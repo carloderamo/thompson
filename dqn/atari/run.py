@@ -101,6 +101,14 @@ def experiment(policy):
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
                          help='Total number of learning steps.')
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
+                         help='Number of steps until the exploration rate stops'
+                              'decreasing.')
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
+                         help='Initial value of the exploration rate.')
+    arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
+                         help='Final value of the exploration rate. When it'
+                              'reaches this values, it stays constant.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
@@ -217,10 +225,15 @@ def experiment(policy):
                     ends_at_life=True)
 
         # Policy
+        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
+                                       min_value=args.final_exploration_rate,
+                                       n=args.final_exploration_frame)
+        epsilon_random = Parameter(value=1.)
+
         if policy == 'boot':
-            pi = BootPolicy(args.n_approximators)
+            pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
         elif policy == 'weighted':
-            pi = WeightedPolicy(args.n_approximators)
+            pi = WeightedPolicy(args.n_approximators, epsilon=epsilon_random)
         else:
             raise ValueError
 
@@ -277,6 +290,9 @@ def experiment(policy):
 
         if args.save:
             agent.approximator.model.save()
+
+        # Initialize learning epsilon
+        pi.set_epsilon(epsilon)
 
         # Evaluate initial policy
         pi.set_eval(True)
