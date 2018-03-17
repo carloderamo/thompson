@@ -98,6 +98,9 @@ class WeightedPolicy(TDPolicy):
                 return np.array([np.random.choice(
                     self._approximator.n_actions)])
 
+    def set_epsilon(self, epsilon):
+        self._epsilon = epsilon
+
     def set_eval(self, eval):
         self._evaluation = eval
 
