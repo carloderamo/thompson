@@ -17,22 +17,22 @@ class BootPolicy(TDPolicy):
         self._idx = None
 
     def draw_action(self, state):
-        if self._evaluation:
-            q_list = list()
-            if isinstance(self._approximator.model, list):
-                for q in self._approximator.model:
-                    q_list.append(q.predict(state))
+        if not np.random.uniform() < self._epsilon(state):
+            if self._evaluation:
+                q_list = list()
+                if isinstance(self._approximator.model, list):
+                    for q in self._approximator.model:
+                        q_list.append(q.predict(state))
+                else:
+                    q_list = self._approximator.predict(state).squeeze()
+
+                max_as, count = np.unique(np.argmax(q_list, axis=1),
+                                          return_counts=True)
+                max_a = np.array([max_as[np.random.choice(
+                    np.argwhere(count == np.max(count)).ravel())]])
+
+                return max_a
             else:
-                q_list = self._approximator.predict(state).squeeze()
-
-            max_as, count = np.unique(np.argmax(q_list, axis=1),
-                                      return_counts=True)
-            max_a = np.array([max_as[np.random.choice(
-                np.argwhere(count == np.max(count)).ravel())]])
-
-            return max_a
-        else:
-            if not np.random.uniform() < self._epsilon(state):
                 q = self._approximator.predict(state, idx=self._idx)
 
                 max_a = np.argwhere(q == np.max(q)).ravel()
@@ -40,9 +40,8 @@ class BootPolicy(TDPolicy):
                     max_a = np.array([np.random.choice(max_a)])
 
                 return max_a
-            else:
-                return np.array([np.random.choice(
-                    self._approximator.n_actions)])
+        else:
+            return np.array([np.random.choice(self._approximator.n_actions)])
 
     def set_epsilon(self, epsilon):
         self._epsilon = epsilon
@@ -66,22 +65,22 @@ class WeightedPolicy(TDPolicy):
         self._evaluation = False
 
     def draw_action(self, state):
-        if self._evaluation:
-            q_list = list()
-            if isinstance(self._approximator.model, list):
-                for q in self._approximator.model:
-                    q_list.append(q.predict(state))
+        if not np.random.uniform() < self._epsilon(state):
+            if self._evaluation:
+                q_list = list()
+                if isinstance(self._approximator.model, list):
+                    for q in self._approximator.model:
+                        q_list.append(q.predict(state))
+                else:
+                    q_list = self._approximator.predict(state).squeeze()
+
+                max_as, count = np.unique(np.argmax(q_list, axis=1),
+                                          return_counts=True)
+                max_a = np.array([max_as[np.random.choice(
+                    np.argwhere(count == np.max(count)).ravel())]])
+
+                return max_a
             else:
-                q_list = self._approximator.predict(state).squeeze()
-
-            max_as, count = np.unique(np.argmax(q_list, axis=1),
-                                      return_counts=True)
-            max_a = np.array([max_as[np.random.choice(
-                np.argwhere(count == np.max(count)).ravel())]])
-
-            return max_a
-        else:
-            if not np.random.uniform() < self._epsilon(state):
                 q_list = list()
                 for i in range(self._n_approximators):
                     q_list.append(self._approximator.predict(state, idx=i))
@@ -94,9 +93,9 @@ class WeightedPolicy(TDPolicy):
                 max_a = np.array([np.argmax(samples)])
 
                 return max_a
-            else:
-                return np.array([np.random.choice(
-                    self._approximator.n_actions)])
+        else:
+            return np.array([np.random.choice(
+                self._approximator.n_actions)])
 
     def set_epsilon(self, epsilon):
         self._epsilon = epsilon
