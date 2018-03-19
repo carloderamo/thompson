@@ -106,7 +106,7 @@ def experiment(policy):
                               'decreasing.')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
                          help='Initial value of the exploration rate.')
-    arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
+    arg_alg.add_argument("--final-exploration-rate", type=float, default=.01,
                          help='Final value of the exploration rate. When it'
                               'reaches this values, it stays constant.')
     arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
