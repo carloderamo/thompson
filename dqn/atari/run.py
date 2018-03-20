@@ -172,25 +172,26 @@ def experiment(policy):
 
         # Agent
         algorithm_params = dict(
-            max_replay_size=0,
-            n_approximators=args.n_approximators,
+            batch_size=args.batch_size,
+            initial_replay_size=1,
+            max_replay_size=1,
             history_length=args.history_length,
             clip_reward=True,
+            n_approximators=args.n_approximators,
+            train_frequency=args.train_frequency,
+            target_update_frequency=args.target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
         )
-        fit_params = dict()
-        agent_params = {'approximator_params': approximator_params,
-                        'algorithm_params': algorithm_params,
-                        'fit_params': fit_params}
-        agent = DQN(approximator, pi, mdp.info, agent_params)
+        agent = DQN(approximator, pi, mdp.info,
+                    approximator_params=approximator_params,
+                    **algorithm_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
 
         # Evaluate model
-        pi.set_epsilon(epsilon_test)
         pi.set_eval(True)
         mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=args.test_samples,
