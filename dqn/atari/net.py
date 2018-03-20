@@ -140,7 +140,7 @@ class ConvNet:
                         flatten, 512, activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
                         bias_initializer=tf.glorot_uniform_initializer(),
-                        name='features_' + str(i)
+                        name='_features_' + str(i)
                     ))
                     self._q.append(tf.layers.dense(
                         self._features[i],
@@ -229,12 +229,20 @@ class ConvNet:
     def _restore_collection(self, convnet_pars):
         self._x = tf.get_collection(self._scope_name + '_x')[0]
         self._action = tf.get_collection(self._scope_name + '_action')[0]
+
+        features = list()
+        q = list()
+        q_acted = list()
         for i in xrange(convnet_pars['n_approximators']):
-            self._features[i] = tf.get_collection(
-                self._scope_name + '_features_' + str(i))[0]
-            self._q[i] = tf.get_collection(self._scope_name + '_q_' + str(i))[0]
-            self._q_acted[i] = tf.get_collection(
-                self._scope_name + '_q_acted_' + str(i))[0]
+            features.append(tf.get_collection(
+                self._scope_name + '_features_' + str(i))[0])
+            q.append(tf.get_collection(self._scope_name + '_q_' + str(i))[0])
+            q_acted.append(tf.get_collection(
+                self._scope_name + '_q_acted_' + str(i))[0])
+
+        self._features = features
+        self._q = q
+        self._q_acted = q_acted
         self._target_q = tf.get_collection(self._scope_name + '_target_q')[0]
         self._merged = tf.get_collection(self._scope_name + '_merged')[0]
         self._train_step = tf.get_collection(
