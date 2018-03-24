@@ -290,7 +290,7 @@ def experiment(policy):
 
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
-    n_experiments = 1
+    n_experiments = 10
 
     for p in policy:
         out = Parallel(n_jobs=-1)(
