@@ -154,7 +154,7 @@ class SimpleNet:
                     self._mask[:, i] * self._target_q[:, i],
                     self._mask[:, i] * self._q_acted[i]
                 )
-            total_loss = loss / convnet_pars['n_approximators']
+            total_loss = loss
             tf.summary.scalar('mse', total_loss)
             tf.summary.scalar('average_q', tf.reduce_mean(self._q))
             self._merged = tf.summary.merge(
