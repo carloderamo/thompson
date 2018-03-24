@@ -131,13 +131,24 @@ class ConvNet:
                 )
                 flatten = tf.reshape(hidden_3, [-1, 7 * 7 * 64], name='flatten')
 
+                def scale_gradient():
+                    with flatten.graph.gradient_override_map(
+                            {'Identity': 'scaled_gradient_' + self._name}):
+                        return tf.identity(flatten, name='identity')
+
+                @tf.RegisterGradient('scaled_gradient_' + self._name)
+                def scaled_gradient(op, grad):
+                    return grad / float(convnet_pars['n_approximators'])
+
+                identity = scale_gradient()
+
             self._features = list()
             self._q = list()
             self._q_acted = list()
             for i in xrange(convnet_pars['n_approximators']):
                 with tf.variable_scope('head_' + str(i)):
                     self._features.append(tf.layers.dense(
-                        flatten, 512, activation=tf.nn.relu,
+                        identity, 512, activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
                         bias_initializer=tf.glorot_uniform_initializer(),
                         name='_features_' + str(i)
@@ -166,8 +177,7 @@ class ConvNet:
                     self._mask[:, i] * self._target_q[:, i],
                     self._mask[:, i] * self._q_acted[i]
                 )
-            total_loss = loss / convnet_pars['n_approximators']
-            tf.summary.scalar('huber_loss', total_loss)
+            tf.summary.scalar('huber_loss', loss)
             tf.summary.scalar('average_q', tf.reduce_mean(self._q))
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
@@ -191,7 +201,7 @@ class ConvNet:
             else:
                 raise ValueError('Unavailable optimizer selected.')
 
-            self._train_step = opt.minimize(loss=total_loss)
+            self._train_step = opt.minimize(loss=loss)
 
             initializer = tf.variables_initializer(
                 tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,

@@ -154,8 +154,7 @@ class SimpleNet:
                     self._mask[:, i] * self._target_q[:, i],
                     self._mask[:, i] * self._q_acted[i]
                 )
-            total_loss = loss
-            tf.summary.scalar('mse', total_loss)
+            tf.summary.scalar('mse', loss)
             tf.summary.scalar('average_q', tf.reduce_mean(self._q))
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
@@ -179,7 +178,7 @@ class SimpleNet:
             else:
                 raise ValueError('Unavailable optimizer selected.')
 
-            self._train_step = opt.minimize(loss=total_loss)
+            self._train_step = opt.minimize(loss=loss)
 
             initializer = tf.variables_initializer(
                 tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
