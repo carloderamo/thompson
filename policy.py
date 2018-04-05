@@ -19,8 +19,8 @@ class BootPolicy(TDPolicy):
     def draw_action(self, state):
         if not np.random.uniform() < self._epsilon(state):
             if self._evaluation:
-                q_list = list()
                 if isinstance(self._approximator.model, list):
+                    q_list = list()
                     for q in self._approximator.model:
                         q_list.append(q.predict(state))
                 else:
@@ -67,8 +67,8 @@ class WeightedPolicy(TDPolicy):
     def draw_action(self, state):
         if not np.random.uniform() < self._epsilon(state):
             if self._evaluation:
-                q_list = list()
                 if isinstance(self._approximator.model, list):
+                    q_list = list()
                     for q in self._approximator.model:
                         q_list.append(q.predict(state))
                 else:
@@ -81,9 +81,12 @@ class WeightedPolicy(TDPolicy):
 
                 return max_a
             else:
-                q_list = list()
-                for i in range(self._n_approximators):
-                    q_list.append(self._approximator.predict(state, idx=i))
+                if isinstance(self._approximator.model, list):
+                    q_list = list()
+                    for i in range(self._n_approximators):
+                        q_list.append(self._approximator.predict(state, idx=i))
+                else:
+                    q_list = self._approximator.predict(state).squeeze()
 
                 mean_q = np.mean(q_list, 0)
                 sigma_q = np.std(q_list, 0, ddof=1)
