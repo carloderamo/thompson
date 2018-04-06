@@ -15,7 +15,7 @@ from mushroom.utils.preprocessor import Scaler
 
 sys.path.append('..')
 sys.path.append('../..')
-from dqn import DQN
+from dqn import DoubleDQN
 from policy import BootPolicy, WeightedPolicy
 from net import ConvNet
 
@@ -183,9 +183,9 @@ def experiment(policy):
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
         )
-        agent = DQN(approximator, pi, mdp.info,
-                    approximator_params=approximator_params,
-                    **algorithm_params)
+        agent = DoubleDQN(approximator, pi, mdp.info,
+                          approximator_params=approximator_params,
+                          **algorithm_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
@@ -275,9 +275,9 @@ def experiment(policy):
             p_mask=args.p_mask
         )
 
-        agent = DQN(approximator, pi, mdp.info,
-                    approximator_params=approximator_params,
-                    **algorithm_params)
+        agent = DoubleDQN(approximator, pi, mdp.info,
+                          approximator_params=approximator_params,
+                          **algorithm_params)
 
         # Algorithm
         core = Core(agent, mdp)
