@@ -161,8 +161,7 @@ def experiment(policy):
             load_path=args.load_path,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+                       'decay': args.decay}
         )
 
         approximator = ConvNet
@@ -252,8 +251,7 @@ def experiment(policy):
             folder_name=folder_name,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+                       'decay': args.decay}
         )
 
         approximator = ConvNet
