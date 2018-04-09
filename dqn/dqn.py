@@ -10,7 +10,7 @@ from replay_memory import Buffer, ReplayMemory
 
 class DQN(Agent):
     def __init__(self, approximator, policy, mdp_info, batch_size,
-                 train_frequency, target_update_frequency, initial_replay_size,
+                 target_update_frequency, initial_replay_size,
                  max_replay_size, fit_params=None, approximator_params=None,
                  n_approximators=1, history_length=1, clip_reward=True,
                  max_no_op_actions=0, no_op_action_value=0, p_mask=2 / 3.):
@@ -108,6 +108,7 @@ class DQN(Agent):
 
         if self._episode_steps < self._no_op_actions:
             action = np.array([self._no_op_action_value])
+            self.policy.update_epsilon(state)
         else:
             extended_state = self._buffer.get()
 

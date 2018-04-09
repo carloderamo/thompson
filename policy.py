@@ -52,6 +52,9 @@ class BootPolicy(TDPolicy):
     def set_idx(self, idx):
         self._idx = idx
 
+    def update_epsilon(self, state):
+        self._epsilon(state)
+
 
 class WeightedPolicy(TDPolicy):
     def __init__(self, n_approximators, epsilon=None):
@@ -108,3 +111,6 @@ class WeightedPolicy(TDPolicy):
 
     def set_idx(self, idx):
         pass
+
+    def update_epsilon(self, state):
+        self._epsilon(state)
