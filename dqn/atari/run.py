@@ -91,7 +91,7 @@ def experiment(policy):
     arg_alg.add_argument("--target-update-frequency", type=int, default=10000,
                          help='Number of learning step before each update of'
                               'the target network.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=250000,
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=1000000,
                          help='Number of learning step before each evaluation.'
                               'This number represents an epoch.')
     arg_alg.add_argument("--train-frequency", type=int, default=4,
