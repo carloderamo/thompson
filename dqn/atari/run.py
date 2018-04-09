@@ -91,7 +91,7 @@ def experiment(policy):
     arg_alg.add_argument("--target-update-frequency", type=int, default=10000,
                          help='Number of learning step before each update of'
                               'the target network.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=1000000,
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=250000,
                          help='Number of learning step before each evaluation.'
                               'This number represents an epoch.')
     arg_alg.add_argument("--train-frequency", type=int, default=4,
@@ -173,6 +173,7 @@ def experiment(policy):
             max_replay_size=1,
             history_length=args.history_length,
             clip_reward=True,
+            train_frequency=args.train_frequency,
             n_approximators=args.n_approximators,
             target_update_frequency=args.target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
@@ -262,6 +263,7 @@ def experiment(policy):
             max_replay_size=max_replay_size,
             history_length=args.history_length,
             clip_reward=True,
+            train_frequency=args.train_frequency,
             n_approximators=args.n_approximators,
             target_update_frequency=target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
