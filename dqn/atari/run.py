@@ -76,9 +76,8 @@ def experiment(policy):
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
-    arg_net.add_argument("--decay", type=float, default=.95,
-                         help='Discount factor for the history coming from the'
-                              'gradient momentum in rmspropcentered')
+    arg_net.add_argument("--momentum", type=float, default=.95)
+    arg_net.add_argument("--epsilon", type=float, default=.01)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--n-approximators", type=int, default=10,
@@ -158,7 +157,8 @@ def experiment(policy):
             load_path=args.load_path,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
-                       'decay': args.decay}
+                       'momentum': args.momentum,
+                       'epsilon': args.epsilon}
         )
 
         approximator = ConvNet
@@ -245,7 +245,8 @@ def experiment(policy):
             folder_name=folder_name,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
-                       'decay': args.decay}
+                       'momentum': args.momentum,
+                       'epsilon': args.epsilon}
         )
 
         approximator = ConvNet
