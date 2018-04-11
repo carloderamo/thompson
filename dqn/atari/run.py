@@ -70,9 +70,9 @@ def experiment():
                                   'adam',
                                   'rmsprop',
                                   'rmspropcentered'],
-                         default='rmsprop',
+                         default='adam',
                          help='Name of the optimizer to use to learn.')
-    arg_net.add_argument("--learning-rate", type=float, default=.00025,
+    arg_net.add_argument("--learning-rate", type=float, default=.0001,
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
     arg_net.add_argument("--momentum", type=float, default=.95)
