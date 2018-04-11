@@ -205,7 +205,7 @@ class ReplayMemory(object):
         self._full = False
         self._states = np.ones(self._observation_shape, dtype=np.uint8)
         self._actions = np.ones(self._action_shape, dtype=np.uint8)
-        self._rewards = np.ones(self._max_size, dtype=np.uint8)
+        self._rewards = np.ones(self._max_size, dtype=np.float32)
         self._absorbing = np.ones(self._max_size, dtype=np.bool)
         self._last = np.ones(self._max_size, dtype=np.bool)
         self._mask = np.ones((self._max_size,
