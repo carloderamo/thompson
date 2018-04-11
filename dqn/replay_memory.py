@@ -37,7 +37,7 @@ class Buffer(object):
             The elements in the buffer.
 
         """
-        s = np.empty(self._buf[0].shape + (self._size,), dtype=np.float32)
+        s = np.empty(self._buf[0].shape + (self._size,), dtype=np.uint8)
         for i in xrange(self._size):
             s[..., i] = self._buf[i]
 
@@ -182,7 +182,7 @@ class ReplayMemory(object):
 
         """
         s = np.empty((idxs.size,) + self._states.shape[1:] + (
-            self._history_length,), dtype=np.float32)
+            self._history_length,), dtype=np.uint8)
         for j, idx in enumerate(idxs):
             if idx >= self._history_length - 1:
                 for k in xrange(self._history_length):
