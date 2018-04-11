@@ -42,7 +42,7 @@ def get_stats(dataset):
     return score
 
 
-def experiment(policy):
+def experiment():
     np.random.seed()
 
     # Argument parser
@@ -194,8 +194,10 @@ def experiment(policy):
     else:
         # DQN learning run
 
+        policy_name = 'weighted' if args.weighted else 'boot'
+
         # Summary folder
-        folder_name = './logs/' + policy + '/' +\
+        folder_name = './logs/' + policy_name + '/' +\
                       datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f')
 
         # Settings
@@ -291,8 +293,6 @@ def experiment(policy):
                                      quiet=args.quiet)
         scores.append(get_stats(dataset))
         pi.set_eval(False)
-
-        policy_name = 'weighted' if args.weighted else 'boot'
 
         np.save(folder_name + '/%s_scores.npy' % policy_name, scores)
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
