@@ -11,7 +11,6 @@ from mushroom.core.core import Core
 from mushroom.environments import Atari
 from mushroom.utils.dataset import compute_J, compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
-from mushroom.utils.preprocessor import Scaler
 
 sys.path.append('..')
 sys.path.append('../..')
@@ -80,6 +79,7 @@ def experiment(policy):
     arg_net.add_argument("--epsilon", type=float, default=.01)
 
     arg_alg = parser.add_argument_group('Algorithm')
+    arg_alg.add_argument("--weighted", action='store_true')
     arg_alg.add_argument("--n-approximators", type=int, default=10,
                          help="Number of approximators used in the ensemble for"
                               "Averaged DQN.")
@@ -227,12 +227,10 @@ def experiment(policy):
         epsilon_test = Parameter(value=args.test_exploration_rate)
         epsilon_random = Parameter(value=1.)
 
-        if policy == 'boot':
+        if not args.weighted:
             pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
-        elif policy == 'weighted':
-            pi = WeightedPolicy(args.n_approximators, epsilon=epsilon_random)
         else:
-            raise ValueError
+            pi = WeightedPolicy(args.n_approximators, epsilon=epsilon_random)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
@@ -294,7 +292,9 @@ def experiment(policy):
         scores.append(get_stats(dataset))
         pi.set_eval(False)
 
-        np.save(folder_name + '/scores.npy', scores)
+        policy_name = 'weighted' if args.weighted else 'boot'
+
+        np.save(folder_name + '/%s_scores.npy' % policy_name, scores)
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
             print_epoch(n_epoch)
             print '- Learning:'
@@ -320,18 +320,14 @@ def experiment(policy):
             scores.append(get_stats(dataset))
             pi.set_eval(False)
 
-            np.save(folder_name + '/scores.npy', scores)
+            np.save(folder_name + '/%s_scores.npy' % policy_name, scores)
 
     return scores
 
 
 if __name__ == '__main__':
-    policy = ['boot', 'weighted']
     n_experiments = 1
 
-    for p in policy:
-        out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p) for _ in xrange(n_experiments))
-        tf.reset_default_graph()
-
-        np.save('logs/' + p + '/scores.npy', out)
+    out = Parallel(n_jobs=-1)(
+        delayed(experiment)() for _ in xrange(n_experiments))
+    tf.reset_default_graph()
