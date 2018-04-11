@@ -175,7 +175,8 @@ def experiment():
             target_update_frequency=args.target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
-            p_mask=args.p_mask
+            p_mask=args.p_mask,
+            dtype=np.uint8,
         )
         agent = DoubleDQN(approximator, pi, mdp.info,
                           approximator_params=approximator_params,
@@ -263,7 +264,8 @@ def experiment():
             target_update_frequency=target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
-            p_mask=args.p_mask
+            p_mask=args.p_mask,
+            dtype=np.uint8,
         )
 
         agent = DoubleDQN(approximator, pi, mdp.info,

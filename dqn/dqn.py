@@ -13,7 +13,8 @@ class DQN(Agent):
                  target_update_frequency, initial_replay_size, train_frequency,
                  max_replay_size, fit_params=None, approximator_params=None,
                  n_approximators=1, history_length=1, clip_reward=True,
-                 max_no_op_actions=0, no_op_action_value=0, p_mask=2 / 3.):
+                 max_no_op_actions=0, no_op_action_value=0, p_mask=2 / 3.,
+                 dtype=np.float32):
         self._fit_params = dict() if fit_params is None else fit_params
 
         self._batch_size = batch_size
@@ -22,17 +23,13 @@ class DQN(Agent):
         self._target_update_frequency = target_update_frequency / train_frequency
         self._max_no_op_actions = max_no_op_actions
         self._no_op_action_value = no_op_action_value
-
-        self._replay_memory = ReplayMemory(mdp_info, initial_replay_size,
-                                           max_replay_size, history_length)
-        self._buffer = Buffer(size=history_length)
         self._p_mask = p_mask
 
         self._replay_memory = ReplayMemory(
             mdp_info, initial_replay_size, max_replay_size, history_length,
-            n_approximators
+            n_approximators, dtype
         )
-        self._buffer = Buffer(size=history_length)
+        self._buffer = Buffer(history_length, dtype)
 
         self._n_updates = 0
         self._episode_steps = 0
