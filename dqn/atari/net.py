@@ -97,7 +97,7 @@ class ConvNet:
                 self._x = tf.placeholder(tf.float32,
                                          shape=[None] + list(
                                              convnet_pars['input_shape']),
-                                         name='input')
+                                         name='input') / 255.
 
             with tf.variable_scope('Action'):
                 self._action = tf.placeholder('uint8', [None], name='action')

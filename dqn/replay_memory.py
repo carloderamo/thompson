@@ -90,9 +90,9 @@ class ReplayMemory(object):
             [self._max_size]) + mdp_info.observation_space.shape
         self._action_shape = (self._max_size, mdp_info.action_space.shape[0])
 
-        self._states = np.ones(self._observation_shape, dtype=np.float32)
-        self._actions = np.ones(self._action_shape, dtype=np.float32)
-        self._rewards = np.ones(self._max_size, dtype=np.float32)
+        self._states = np.ones(self._observation_shape, dtype=np.uint8)
+        self._actions = np.ones(self._action_shape, dtype=np.uint8)
+        self._rewards = np.ones(self._max_size, dtype=np.uint8)
         self._absorbing = np.ones(self._max_size, dtype=np.bool)
         self._last = np.ones(self._max_size, dtype=np.bool)
         self._mask = np.ones((self._max_size,

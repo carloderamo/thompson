@@ -149,14 +149,11 @@ def experiment(policy):
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
-        input_preprocessor = [Scaler(
-            mdp.info.observation_space.high[0, 0])]
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
-            input_preprocessor=input_preprocessor,
             name='test',
             load_path=args.load_path,
             optimizer={'name': args.optimizer,
@@ -240,14 +237,11 @@ def experiment(policy):
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
-        input_preprocessor = [Scaler(
-            mdp.info.observation_space.high[0, 0])]
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
-            input_preprocessor=input_preprocessor,
             folder_name=folder_name,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
