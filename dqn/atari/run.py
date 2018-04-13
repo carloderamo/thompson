@@ -198,8 +198,7 @@ def experiment():
         policy_name = 'weighted' if args.weighted else 'boot'
 
         # Summary folder
-        folder_name = './logs/' + policy_name + '/' +\
-                      datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f')
+        folder_name = './logs/' + policy_name + '/' + args.name
 
         # Settings
         if args.debug:
@@ -296,7 +295,7 @@ def experiment():
         scores.append(get_stats(dataset))
         pi.set_eval(False)
 
-        np.save(folder_name + '/%s_scores.npy' % policy_name, scores)
+        np.save(folder_name + '/scores.npy', scores)
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
             print_epoch(n_epoch)
             print '- Learning:'
@@ -322,7 +321,7 @@ def experiment():
             scores.append(get_stats(dataset))
             pi.set_eval(False)
 
-            np.save(folder_name + '/%s_scores.npy' % policy_name, scores)
+            np.save(folder_name + '/scores.npy', scores)
 
     return scores
 
