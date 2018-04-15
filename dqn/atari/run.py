@@ -221,6 +221,8 @@ def experiment():
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
+        mdp_test = Atari(args.name, args.screen_width, args.screen_height,
+                         ends_at_life=False)
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -273,14 +275,15 @@ def experiment():
 
         # Algorithm
         core = Core(agent, mdp)
-        core_test = Core(agent, mdp)
+        core_test = Core(agent, mdp_test)
 
         # RUN
 
         # Fill replay memory with random dataset
         print_epoch(0)
         core.learn(n_steps=initial_replay_size,
-                   n_steps_per_fit=initial_replay_size, quiet=args.quiet)
+                   n_steps_per_fit=initial_replay_size, quiet=args.quiet,
+                   resume=True)
 
         if args.save:
             agent.approximator.model.save()
@@ -288,7 +291,6 @@ def experiment():
         # Evaluate initial policy
         pi.set_eval(True)
         pi.set_epsilon(epsilon_test)
-        mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
@@ -301,11 +303,10 @@ def experiment():
             print '- Learning:'
             # learning step
             pi.set_epsilon(epsilon)
-            mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
                        quiet=args.quiet,
-                       render=args.render)
+                       resume=True)
 
             if args.save:
                 agent.approximator.model.save()
@@ -313,8 +314,6 @@ def experiment():
             print '- Evaluation:'
             # evaluation step
             pi.set_epsilon(epsilon_test)
-            mdp.set_episode_end(ends_at_life=False)
-            core_test.reset()
             pi.set_eval(True)
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
