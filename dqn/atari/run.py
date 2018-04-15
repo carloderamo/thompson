@@ -110,7 +110,7 @@ def experiment():
                          help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
-    arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
+    arg_alg.add_argument("--max-no-op-actions", type=int, default=8,
                          help='Maximum number of no-op action performed at the'
                               'beginning of the episodes. The minimum number is'
                               'history_length.')
@@ -304,7 +304,8 @@ def experiment():
             mdp.set_episode_end(ends_at_life=True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
-                       quiet=args.quiet)
+                       quiet=args.quiet,
+                       render=args.render)
 
             if args.save:
                 agent.approximator.model.save()
