@@ -301,9 +301,7 @@ def experiment():
             pi.set_epsilon(epsilon)
             mdp.set_episode_end(True)
             core.learn(n_steps=evaluation_frequency,
-                       n_steps_per_fit=train_frequency,
-                       quiet=args.quiet,
-                       resume=True)
+                       n_steps_per_fit=train_frequency, quiet=args.quiet)
 
             if args.save:
                 agent.approximator.model.save()
