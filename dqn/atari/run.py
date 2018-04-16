@@ -221,8 +221,6 @@ def experiment():
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
-        mdp_test = Atari(args.name, args.screen_width, args.screen_height,
-                         ends_at_life=False)
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -275,7 +273,6 @@ def experiment():
 
         # Algorithm
         core = Core(agent, mdp)
-        core_test = Core(agent, mdp_test)
 
         # RUN
 
@@ -290,18 +287,19 @@ def experiment():
         # Evaluate initial policy
         pi.set_eval(True)
         pi.set_epsilon(epsilon_test)
-        dataset = core_test.evaluate(n_steps=test_samples,
-                                     render=args.render,
-                                     quiet=args.quiet)
+        mdp.set_episode_end(False)
+        dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                                quiet=args.quiet)
         scores.append(get_stats(dataset))
-        pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
             print_epoch(n_epoch)
             print '- Learning:'
             # learning step
+            pi.set_eval(False)
             pi.set_epsilon(epsilon)
+            mdp.set_episode_end(True)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
                        quiet=args.quiet,
@@ -312,17 +310,14 @@ def experiment():
 
             print '- Evaluation:'
             # evaluation step
-            pi.set_epsilon(epsilon_test)
             pi.set_eval(True)
-            dataset = core_test.evaluate(n_steps=test_samples,
-                                         render=args.render,
-                                         quiet=args.quiet)
+            pi.set_epsilon(epsilon_test)
+            mdp.set_episode_end(False)
+            dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                                    quiet=args.quiet)
             scores.append(get_stats(dataset))
-            pi.set_eval(False)
 
             np.save(folder_name + '/scores.npy', scores)
-
-        core.stop()
 
     return scores
 
