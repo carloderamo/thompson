@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 
 from mushroom.algorithms.value import TD
@@ -40,3 +42,54 @@ class BootstrappedQLearning(Bootstrapped):
                 reward + self.mdp_info.gamma * q_next - q_current[i])
 
         self._mask = np.random.binomial(1, self._p, self._n_approximators)
+
+
+class BootstrappedDoubleQLearning(Bootstrapped):
+    def __init__(self, policy, mdp_info, learning_rate, n_approximators=10,
+                 mu=0., sigma=1., p=2 / 3.):
+        super(BootstrappedDoubleQLearning, self).__init__(
+            policy, mdp_info, learning_rate, n_approximators, mu, sigma, p
+        )
+
+        self.Qs = [EnsembleTable(n_approximators, mdp_info.size),
+                   EnsembleTable(n_approximators, mdp_info.size)]
+
+        for i in xrange(len(self.Qs[0])):
+            self.Qs[0][i].table = np.random.randn(
+                *self.Qs[0][i].shape) * self._sigma + self._mu
+
+        for i in xrange(len(self.Qs[1])):
+            self.Qs[1][i].table = self.Qs[0][i].table.copy()
+            self.Q[i].table = self.Qs[0][i].table.copy()
+
+        self.alpha = [deepcopy(self.alpha), deepcopy(self.alpha)]
+
+    def _update(self, state, action, reward, next_state, absorbing):
+        if np.random.uniform() < .5:
+            i_q = 0
+        else:
+            i_q = 1
+
+        q_current = np.array([x[state, action] for x in self.Qs[i_q]])
+        if not absorbing:
+            for i in np.argwhere(self._mask).ravel():
+                q_ss = self.Qs[i_q].predict(next_state, idx=i)
+                max_q = np.max(q_ss)
+                a_n = np.array(
+                    [np.random.choice(np.argwhere(q_ss == max_q).ravel())])
+                q_next = self.Qs[1-i_q].predict(next_state, a_n, idx=i)
+                self.Qs[i_q][i][state, action] = q_current[i] + self.alpha[i_q](
+                    state, action) * (
+                        reward + self.mdp_info.gamma * q_next - q_current[i])
+                self._update_Q(state, action, idx=i)
+        else:
+            for i in np.argwhere(self._mask).ravel():
+                self.Qs[i_q][i][state, action] = q_current[i] + self.alpha[i_q](
+                    state, action) * (reward - q_current[i])
+                self._update_Q(state, action, idx=i)
+
+        self._mask = np.random.binomial(1, self._p, self._n_approximators)
+
+    def _update_Q(self, state, action, idx):
+        self.Q[idx][state, action] = np.mean(
+            [q[idx][state, action] for q in self.Qs])
