@@ -139,7 +139,7 @@ def experiment():
     # Evaluation of the model provided by the user.
     if args.load_path:
         mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+                    ends_at_life=False)
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
@@ -187,7 +187,6 @@ def experiment():
 
         # Evaluate model
         pi.set_eval(True)
-        mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
