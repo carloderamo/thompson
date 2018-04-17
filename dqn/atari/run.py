@@ -106,7 +106,7 @@ def experiment():
     arg_alg.add_argument("--final-exploration-rate", type=float, default=.01,
                          help='Final value of the exploration rate. When it'
                               'reaches this values, it stays constant.')
-    arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
+    arg_alg.add_argument("--test-exploration-rate", type=float, default=0.,
                          help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
@@ -173,7 +173,7 @@ def experiment():
             train_frequency=args.train_frequency,
             n_approximators=args.n_approximators,
             target_update_frequency=args.target_update_frequency,
-            max_no_op_actions=args.max_no_op_actions,
+            max_no_op_actions=4,
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask,
             dtype=np.uint8,
@@ -287,8 +287,10 @@ def experiment():
         pi.set_eval(True)
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(False)
+        agent._max_no_op_actions = 4
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                 quiet=args.quiet)
+        agent._max_no_op_actions = args.max_no_op_actions
         scores.append(get_stats(dataset))
 
         np.save(folder_name + '/scores.npy', scores)
@@ -310,8 +312,10 @@ def experiment():
             pi.set_eval(True)
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(False)
+            agent._max_no_op_actions = 4
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                     quiet=args.quiet)
+            agent._max_no_op_actions = args.max_no_op_actions
             scores.append(get_stats(dataset))
 
             np.save(folder_name + '/scores.npy', scores)
