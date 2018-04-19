@@ -13,7 +13,7 @@ from mushroom.utils.dataset import compute_J, compute_scores
 
 sys.path.append('..')
 sys.path.append('../..')
-from dqn import DQN
+from dqn import DoubleDQN
 from policy import BootPolicy, WeightedPolicy
 from net import SimpleNet
 
@@ -238,7 +238,7 @@ def experiment(policy):
             p_mask=args.p_mask
         )
 
-        agent = DQN(approximator, pi, mdp.info,
+        agent = DoubleDQN(approximator, pi, mdp.info,
                     approximator_params=approximator_params,
                     **algorithm_params)
 
