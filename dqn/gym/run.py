@@ -46,6 +46,9 @@ def experiment(policy):
     # Argument parser
     parser = argparse.ArgumentParser()
 
+    arg_mdp = parser.add_argument_group('Game')
+    arg_mdp.add_argument("--name", type=str, default='Acrobot-v1')
+
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=5000,
                          help='Initial size of the replay memory.')
@@ -119,7 +122,7 @@ def experiment(policy):
 
     # Evaluation of the model provided by the user.
     if args.load_path:
-        mdp = Gym('Acrobot-v1', 1000, .99)
+        mdp = Gym(args.name, 1000, .99)
 
         # Policy
         pi = BootPolicy(args.n_approximators)
@@ -192,7 +195,7 @@ def experiment(policy):
             max_steps = args.max_steps
 
         # MDP
-        mdp = Gym('Acrobot-v1', 1000, .99)
+        mdp = Gym(args.name, 1000, .99)
 
         if policy == 'boot':
             pi = BootPolicy(args.n_approximators)
