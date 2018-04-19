@@ -94,7 +94,7 @@ class DQN(Agent):
 
         """
         q = np.array(self.target_approximator.predict(next_state))[0]
-        for i in xrange(q.shape[1]):
+        for i in range(q.shape[1]):
             if absorbing[i]:
                 q[:, i, :] *= 1. - absorbing[i]
 
@@ -135,15 +135,15 @@ class DoubleDQN(DQN):
     def _next_q(self, next_state, absorbing):
         q = np.array(self.approximator.predict(next_state))[0]
         tq = np.array(self.target_approximator.predict(next_state))[0]
-        for i in xrange(q.shape[1]):
+        for i in range(q.shape[1]):
             if absorbing[i]:
                 tq[:, i, :] *= 1. - absorbing[i]
 
         max_a = np.argmax(q, axis=2)
 
         double_q = np.zeros(q.shape[:2])
-        for i in xrange(double_q.shape[0]):
-            for j in xrange(double_q.shape[1]):
+        for i in range(double_q.shape[0]):
+            for j in range(double_q.shape[1]):
                 double_q[i, j] = tq[i, j, max_a[i, j]]
 
         return double_q.T
@@ -157,12 +157,12 @@ class WeightedDQN(DQN):
     def _next_q(self, next_state, absorbing):
         q = np.array(self.approximator.predict(next_state))[0]
         tq = np.array(self.target_approximator.predict(next_state))[0]
-        for i in xrange(tq.shape[1]):
+        for i in range(tq.shape[1]):
             if absorbing[i]:
                 tq[:, i, :] *= 1. - absorbing[i]
 
         W = np.zeros((next_state.shape[0], self._n_approximators))
-        for i in xrange(W.shape[0]):
+        for i in range(W.shape[0]):
             max_a = np.argmax(q[:, i, :], axis=1)
             max_idx, max_count = np.unique(max_a, return_counts=True)
             count = np.zeros(self.mdp_info.action_space.n)

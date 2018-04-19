@@ -15,7 +15,7 @@ class Bootstrapped(TD):
         self._p = p
         self._mask = np.random.binomial(1, self._p, self._n_approximators)
         self.Q = EnsembleTable(self._n_approximators, mdp_info.size)
-        for i in xrange(len(self.Q.model)):
+        for i in range(len(self.Q.model)):
             self.Q.model[i].table = np.random.randn(
                 *self.Q[i].shape) * self._sigma + self._mu
 
@@ -54,11 +54,11 @@ class BootstrappedDoubleQLearning(Bootstrapped):
         self.Qs = [EnsembleTable(n_approximators, mdp_info.size),
                    EnsembleTable(n_approximators, mdp_info.size)]
 
-        for i in xrange(len(self.Qs[0])):
+        for i in range(len(self.Qs[0])):
             self.Qs[0][i].table = np.random.randn(
                 *self.Qs[0][i].shape) * self._sigma + self._mu
 
-        for i in xrange(len(self.Qs[1])):
+        for i in range(len(self.Qs[1])):
             self.Qs[1][i].table = self.Qs[0][i].table.copy()
             self.Q[i].table = self.Qs[0][i].table.copy()
 

@@ -27,7 +27,7 @@ class SimpleNet:
                 self._target_w = list()
                 self._w = list()
                 with tf.variable_scope('weights_placeholder'):
-                    for i in xrange(len(w)):
+                    for i in range(len(w)):
                         self._target_w.append(tf.placeholder(w[i].dtype,
                                                              shape=w[i].shape))
                         self._w.append(w[i].assign(self._target_w[i]))
@@ -57,7 +57,7 @@ class SimpleNet:
                               scope=self._scope_name)
         assert len(w) == len(weights)
 
-        for i in xrange(len(w)):
+        for i in range(len(w)):
             self._session.run(self._w[i],
                               feed_dict={self._target_w[i]: weights[i]})
 
@@ -114,7 +114,7 @@ class SimpleNet:
             self._features2 = list()
             self._q = list()
             self._q_acted = list()
-            for i in xrange(convnet_pars['n_approximators']):
+            for i in range(convnet_pars['n_approximators']):
                 with tf.variable_scope('head_' + str(i)):
                     self._features.append(tf.layers.dense(
                         self._x[..., 0], convnet_pars['n_features'],
@@ -149,8 +149,8 @@ class SimpleNet:
                 name='target_q'
             )
             loss = 0.
-            for i in xrange(convnet_pars['n_approximators']):
-                loss += tf.losses.mean_squared_error(
+            for i in range(convnet_pars['n_approximators']):
+                loss += tf.losses.huber_loss(
                     self._mask[:, i] * self._target_q[:, i],
                     self._mask[:, i] * self._q_acted[i]
                 )
@@ -203,7 +203,7 @@ class SimpleNet:
     def _add_collection(self):
         tf.add_to_collection(self._scope_name + '_x', self._x)
         tf.add_to_collection(self._scope_name + '_action', self._action)
-        for i in xrange(len(self._features)):
+        for i in range(len(self._features)):
             tf.add_to_collection(self._scope_name + '_features_' + str(i),
                                  self._features[i])
             tf.add_to_collection(self._scope_name + '_q_' + str(i), self._q[i])
@@ -216,7 +216,7 @@ class SimpleNet:
     def _restore_collection(self, convnet_pars):
         self._x = tf.get_collection(self._scope_name + '_x')[0]
         self._action = tf.get_collection(self._scope_name + '_action')[0]
-        for i in xrange(convnet_pars['n_approximators']):
+        for i in range(convnet_pars['n_approximators']):
             self._features[i] = tf.get_collection(
                 self._scope_name + '_features_' + str(i))[0]
             self._q[i] = tf.get_collection(self._scope_name + '_q_' + str(i))[0]

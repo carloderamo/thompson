@@ -28,9 +28,9 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def print_epoch(epoch):
-    print '################################################################'
-    print 'Epoch: ', epoch
-    print '----------------------------------------------------------------'
+    print('################################################################')
+    print('Epoch: ', epoch)
+    print('----------------------------------------------------------------')
 
 
 def get_stats(dataset):
@@ -262,9 +262,9 @@ def experiment(policy):
         pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
-        for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
+        for n_epoch in range(1, max_steps // evaluation_frequency + 1):
             print_epoch(n_epoch)
-            print '- Learning:'
+            print('- Learning:')
             # learning step
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
@@ -273,7 +273,7 @@ def experiment(policy):
             if args.save:
                 agent.approximator.model.save()
 
-            print '- Evaluation:'
+            print('- Evaluation:')
             # evaluation step
             core_test.reset()
             pi.set_eval(True)
@@ -294,7 +294,7 @@ if __name__ == '__main__':
 
     for p in policy:
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p) for _ in xrange(n_experiments))
+            delayed(experiment)(p) for _ in range(n_experiments))
         tf.reset_default_graph()
 
         np.save('logs/' + p + '/scores.npy', out)
