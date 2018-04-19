@@ -120,21 +120,18 @@ class SimpleNet:
                         self._x[..., 0], convnet_pars['n_features'],
                         activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
-                        bias_initializer=tf.glorot_uniform_initializer(),
                         name='features_' + str(i)
                     ))
                     self._features2.append(tf.layers.dense(
                         self._features[i], convnet_pars['n_features'],
                         activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
-                        bias_initializer=tf.glorot_uniform_initializer(),
                         name='features2_' + str(i)
                     ))
                     self._q.append(tf.layers.dense(
                         self._features2[i],
                         convnet_pars['output_shape'][0],
                         kernel_initializer=tf.glorot_uniform_initializer(),
-                        bias_initializer=tf.glorot_uniform_initializer(),
                         name='q_' + str(i)
                     ))
                     self._q_acted.append(
@@ -150,7 +147,7 @@ class SimpleNet:
             )
             loss = 0.
             for i in range(convnet_pars['n_approximators']):
-                loss += tf.losses.huber_loss(
+                loss += tf.losses.mean_squared_error(
                     self._mask[:, i] * self._target_q[:, i],
                     self._mask[:, i] * self._q_acted[i]
                 )

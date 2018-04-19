@@ -114,19 +114,16 @@ class ConvNet:
                 hidden_1 = tf.layers.conv2d(
                     self._x, 32, 8, 4, activation=tf.nn.relu,
                     kernel_initializer=tf.glorot_uniform_initializer(),
-                    bias_initializer=tf.glorot_uniform_initializer(),
                     name='hidden_1'
                 )
                 hidden_2 = tf.layers.conv2d(
                     hidden_1, 64, 4, 2, activation=tf.nn.relu,
                     kernel_initializer=tf.glorot_uniform_initializer(),
-                    bias_initializer=tf.glorot_uniform_initializer(),
                     name='hidden_2'
                 )
                 hidden_3 = tf.layers.conv2d(
                     hidden_2, 64, 3, 1, activation=tf.nn.relu,
                     kernel_initializer=tf.glorot_uniform_initializer(),
-                    bias_initializer=tf.glorot_uniform_initializer(),
                     name='hidden_3'
                 )
                 flatten = tf.reshape(hidden_3, [-1, 7 * 7 * 64], name='flatten')
@@ -150,14 +147,12 @@ class ConvNet:
                     self._features.append(tf.layers.dense(
                         identity, 512, activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
-                        bias_initializer=tf.glorot_uniform_initializer(),
                         name='_features_' + str(i)
                     ))
                     self._q.append(tf.layers.dense(
                         self._features[i],
                         convnet_pars['output_shape'][0],
                         kernel_initializer=tf.glorot_uniform_initializer(),
-                        bias_initializer=tf.glorot_uniform_initializer(),
                         name='q_' + str(i)
                     ))
                     self._q_acted.append(
