@@ -173,8 +173,7 @@ def experiment(policy):
         # DQN learning run
 
         # Summary folder
-        folder_name = './logs/' + policy + '/' +\
-                      datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f')
+        folder_name = './logs/' + policy_name + '/' + args.name
 
         # Settings
         if args.debug:
