@@ -157,8 +157,9 @@ def experiment(policy):
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
         )
-        agent = DQN(approximator, pi, mdp.info,
-                    approximator_params=approximator_params, **algorithm_params)
+        agent = DoubleDQN(approximator, pi, mdp.info,
+                          approximator_params=approximator_params,
+                          **algorithm_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
@@ -238,8 +239,8 @@ def experiment(policy):
         )
 
         agent = DoubleDQN(approximator, pi, mdp.info,
-                    approximator_params=approximator_params,
-                    **algorithm_params)
+                          approximator_params=approximator_params,
+                          **algorithm_params)
 
         # Algorithm
         core = Core(agent, mdp)
