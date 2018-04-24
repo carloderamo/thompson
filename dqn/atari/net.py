@@ -182,12 +182,12 @@ class ConvNet:
             optimizer = convnet_pars['optimizer']
             if optimizer['name'] == 'rmspropcentered':
                 opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
-                                                momentum=optimizer['momentum'],
+                                                decay=optimizer['decay'],
                                                 epsilon=optimizer['epsilon'],
                                                 centered=True)
             elif optimizer['name'] == 'rmsprop':
                 opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
-                                                momentum=optimizer['momentum'],
+                                                decay=optimizer['decay'],
                                                 epsilon=optimizer['epsilon'])
             elif optimizer['name'] == 'adam':
                 opt = tf.train.AdamOptimizer(learning_rate=optimizer['lr'])

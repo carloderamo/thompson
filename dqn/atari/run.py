@@ -75,7 +75,7 @@ def experiment():
     arg_net.add_argument("--learning-rate", type=float, default=.0001,
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
-    arg_net.add_argument("--momentum", type=float, default=.95)
+    arg_net.add_argument("--decay", type=float, default=.95)
     arg_net.add_argument("--epsilon", type=float, default=.01)
 
     arg_alg = parser.add_argument_group('Algorithm')
@@ -157,7 +157,7 @@ def experiment():
             load_path=args.load_path,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
-                       'momentum': args.momentum,
+                       'decay': args.decay,
                        'epsilon': args.epsilon}
         )
 
@@ -244,7 +244,7 @@ def experiment():
             folder_name=folder_name,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
-                       'momentum': args.momentum,
+                       'decay': args.decay,
                        'epsilon': args.epsilon}
         )
 
