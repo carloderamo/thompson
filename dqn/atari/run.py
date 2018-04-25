@@ -287,10 +287,8 @@ def experiment():
         pi.set_eval(True)
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(False)
-        agent._max_no_op_actions = 4
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                 quiet=args.quiet)
-        agent._max_no_op_actions = args.max_no_op_actions
         scores.append(get_stats(dataset))
 
         np.save(folder_name + '/scores.npy', scores)
@@ -312,10 +310,8 @@ def experiment():
             pi.set_eval(True)
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(False)
-            agent._max_no_op_actions = 4
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                     quiet=args.quiet)
-            agent._max_no_op_actions = args.max_no_op_actions
             scores.append(get_stats(dataset))
 
             np.save(folder_name + '/scores.npy', scores)
