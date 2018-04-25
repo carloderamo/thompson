@@ -106,7 +106,7 @@ def experiment():
     arg_alg.add_argument("--final-exploration-rate", type=float, default=.01,
                          help='Final value of the exploration rate. When it'
                               'reaches this values, it stays constant.')
-    arg_alg.add_argument("--test-exploration-rate", type=float, default=0.,
+    arg_alg.add_argument("--test-exploration-rate", type=float, default=.001,
                          help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
