@@ -62,7 +62,7 @@ def experiment(policy):
                                   'adam',
                                   'rmsprop',
                                   'rmspropcentered'],
-                         default='adam',
+                         default='rmspropcentered',
                          help='Name of the optimizer to use to learn.')
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
                          help='Learning rate value of the optimizer. Only used'
