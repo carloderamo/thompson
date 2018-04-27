@@ -1,5 +1,4 @@
 import argparse
-import datetime
 import os
 import sys
 
@@ -9,7 +8,7 @@ import tensorflow as tf
 
 from mushroom.core.core import Core
 from mushroom.environments import Atari
-from mushroom.utils.dataset import compute_J, compute_scores
+from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 
 sys.path.append('..')

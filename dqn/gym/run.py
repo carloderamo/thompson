@@ -1,5 +1,4 @@
 import argparse
-import datetime
 import os
 import sys
 
@@ -9,7 +8,8 @@ import tensorflow as tf
 
 from mushroom.core.core import Core
 from mushroom.environments import *
-from mushroom.utils.dataset import compute_J, compute_scores
+from mushroom.utils.dataset import compute_J
+from mushroom.utils.parameters import LinearDecayParameter, Parameter
 
 sys.path.append('..')
 sys.path.append('../..')
@@ -92,6 +92,16 @@ def experiment(policy):
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=250000,
                          help='Total number of learning steps.')
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=10000,
+                         help='Number of steps until the exploration rate stops'
+                              'decreasing.')
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
+                         help='Initial value of the exploration rate.')
+    arg_alg.add_argument("--final-exploration-rate", type=float, default=.01,
+                         help='Final value of the exploration rate. When it'
+                              'reaches this values, it stays constant.')
+    arg_alg.add_argument("--test-exploration-rate", type=float, default=0.,
+                         help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=5000,
                          help='Number of steps for each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=0,
@@ -125,7 +135,8 @@ def experiment(policy):
         mdp = Gym(args.name, 1000, .99)
 
         # Policy
-        pi = BootPolicy(args.n_approximators)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
+        pi = BootPolicy(args.n_approximators, epsilon=epsilon_test)
 
         # Approximator
         input_shape = mdp.info.observation_space.shape + (args.history_length,)
@@ -197,10 +208,17 @@ def experiment(policy):
         # MDP
         mdp = Gym(args.name, 1000, .99)
 
+        # Policy
+        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
+                                       min_value=args.final_exploration_rate,
+                                       n=args.final_exploration_frame)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
+        epsilon_random = Parameter(value=1.)
+
         if policy == 'boot':
-            pi = BootPolicy(args.n_approximators)
+            pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
         elif policy == 'weighted':
-            pi = WeightedPolicy(args.n_approximators)
+            pi = WeightedPolicy(args.n_approximators, epsilon=epsilon_random)
         else:
             raise ValueError
 
@@ -258,16 +276,18 @@ def experiment(policy):
 
         # Evaluate initial policy
         pi.set_eval(True)
+        pi.set_epsilon(epsilon_test)
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
         scores.append(get_stats(dataset))
-        pi.set_eval(False)
 
         np.save(folder_name + '/scores.npy', scores)
         for n_epoch in range(1, max_steps // evaluation_frequency + 1):
             print_epoch(n_epoch)
             print('- Learning:')
+            pi.set_eval(False)
+            pi.set_epsilon(epsilon)
             # learning step
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency,
@@ -280,11 +300,11 @@ def experiment(policy):
             # evaluation step
             core_test.reset()
             pi.set_eval(True)
+            pi.set_epsilon(epsilon_test)
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
             scores.append(get_stats(dataset))
-            pi.set_eval(False)
 
             np.save(folder_name + '/scores.npy', scores)
 
