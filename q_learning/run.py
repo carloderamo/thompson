@@ -9,7 +9,7 @@ from mushroom.utils.callbacks import CollectDataset
 from mushroom.utils.dataset import compute_J, parse_dataset
 from mushroom.utils.parameters import Parameter
 
-from boot_q_learning import BootstrappedQLearning
+from boot_q_learning import BootstrappedDoubleQLearning
 sys.path.append('..')
 from policy import BootPolicy, WeightedPolicy
 
@@ -26,7 +26,7 @@ def experiment(n_approximators, policy):
     # Agent
     learning_rate = Parameter(value=.15)
     algorithm_params = dict(learning_rate=learning_rate)
-    agent = BootstrappedQLearning(pi, mdp.info, **algorithm_params)
+    agent = BootstrappedDoubleQLearning(pi, mdp.info, **algorithm_params)
 
     # Algorithm
     collect_dataset = CollectDataset()
