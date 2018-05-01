@@ -147,7 +147,7 @@ class SimpleNet:
             )
             loss = 0.
             for i in range(convnet_pars['n_approximators']):
-                loss += tf.losses.huber_loss(
+                loss += tf.losses.mean_squared_error(
                     self._mask[:, i] * self._target_q[:, i],
                     self._mask[:, i] * self._q_acted[i]
                 )

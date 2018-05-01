@@ -62,9 +62,9 @@ def experiment(policy):
                                   'adam',
                                   'rmsprop',
                                   'rmspropcentered'],
-                         default='rmspropcentered',
+                         default='adam',
                          help='Name of the optimizer to use to learn.')
-    arg_net.add_argument("--learning-rate", type=float, default=.00025,
+    arg_net.add_argument("--learning-rate", type=float, default=.001,
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
     arg_net.add_argument("--decay", type=float, default=.95,
@@ -95,9 +95,9 @@ def experiment(policy):
     arg_alg.add_argument("--final-exploration-frame", type=int, default=10000,
                          help='Number of steps until the exploration rate stops'
                               'decreasing.')
-    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=0.,
                          help='Initial value of the exploration rate.')
-    arg_alg.add_argument("--final-exploration-rate", type=float, default=.01,
+    arg_alg.add_argument("--final-exploration-rate", type=float, default=0.,
                          help='Final value of the exploration rate. When it'
                               'reaches this values, it stays constant.')
     arg_alg.add_argument("--test-exploration-rate", type=float, default=0.,
