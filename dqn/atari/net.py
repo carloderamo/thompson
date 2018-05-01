@@ -97,7 +97,7 @@ class ConvNet:
                 self._x = tf.placeholder(tf.float32,
                                          shape=[None] + list(
                                              convnet_pars['input_shape']),
-                                         name='input') / 255.
+                                         name='input')
 
             with tf.variable_scope('Action'):
                 self._action = tf.placeholder('uint8', [None], name='action')
@@ -112,7 +112,7 @@ class ConvNet:
 
             with tf.variable_scope('Convolutions'):
                 hidden_1 = tf.layers.conv2d(
-                    self._x, 32, 8, 4, activation=tf.nn.relu,
+                    self._x / 255., 32, 8, 4, activation=tf.nn.relu,
                     kernel_initializer=tf.glorot_uniform_initializer(),
                     name='hidden_1'
                 )
