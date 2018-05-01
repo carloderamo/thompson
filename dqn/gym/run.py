@@ -319,5 +319,3 @@ if __name__ == '__main__':
         out = Parallel(n_jobs=-1)(
             delayed(experiment)(p) for _ in range(n_experiments))
         tf.reset_default_graph()
-
-        np.save('logs/' + p + '/scores.npy', out)
