@@ -22,6 +22,8 @@ class Bootstrapped(TD):
         super(Bootstrapped, self).__init__(self.Q, policy, mdp_info,
                                            learning_rate)
 
+        self.alpha = [deepcopy(self.alpha)] * n_approximators
+
     def draw_action(self, state):
         self.policy.set_idx(np.random.randint(self._n_approximators))
 
@@ -38,7 +40,7 @@ class BootstrappedQLearning(Bootstrapped):
         for i in np.argwhere(self._mask).ravel():
             q_next = np.max(self.Q[i][next_state]) if not absorbing else 0.
             self.Q.model[i][
-                state, action] = q_current[i] + self.alpha(state, action) * (
+                state, action] = q_current[i] + self.alpha[i](state, action) * (
                 reward + self.mdp_info.gamma * q_next - q_current[i])
 
         self._mask = np.random.binomial(1, self._p, self._n_approximators)
@@ -62,8 +64,7 @@ class BootstrappedDoubleQLearning(Bootstrapped):
             self.Qs[1][i].table = self.Qs[0][i].table.copy()
             self.Q[i].table = self.Qs[0][i].table.copy()
 
-        alpha_head = [deepcopy(self.alpha)] * n_approximators
-        self.alpha = [deepcopy(alpha_head), deepcopy(alpha_head)]
+        self.alpha = [deepcopy(self.alpha), deepcopy(self.alpha)]
 
     def _update(self, state, action, reward, next_state, absorbing):
         if np.random.uniform() < .5:
