@@ -91,10 +91,12 @@ class WeightedPolicy(TDPolicy):
                 else:
                     q_list = self._approximator.predict(state).squeeze()
 
-                mean_q = np.mean(q_list, 0)
-                sigma_q = np.std(q_list, 0, ddof=1)
+                qs = np.array(q_list)
 
-                samples = np.random.normal(mean_q, sigma_q)
+                samples = list()
+                for a in range(self._approximator.n_actions):
+                    idx = np.random.randint(self._n_approximators)
+                    samples.append(qs[idx, a])
 
                 max_a = np.array([np.argmax(samples)])
 
