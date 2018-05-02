@@ -93,10 +93,10 @@ class WeightedPolicy(TDPolicy):
 
                 qs = np.array(q_list)
 
-                samples = list()
+                samples = np.ones(self._approximator.n_actions)
                 for a in range(self._approximator.n_actions):
                     idx = np.random.randint(self._n_approximators)
-                    samples.append(qs[idx, a])
+                    samples[a] = qs[idx, a]
 
                 max_a = np.array([np.argmax(samples)])
 
