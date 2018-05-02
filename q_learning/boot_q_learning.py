@@ -62,7 +62,8 @@ class BootstrappedDoubleQLearning(Bootstrapped):
             self.Qs[1][i].table = self.Qs[0][i].table.copy()
             self.Q[i].table = self.Qs[0][i].table.copy()
 
-        self.alpha = [deepcopy(self.alpha), deepcopy(self.alpha)]
+        alpha_head = [deepcopy(self.alpha)] * n_approximators
+        self.alpha = [deepcopy(alpha_head), deepcopy(alpha_head)]
 
     def _update(self, state, action, reward, next_state, absorbing):
         if np.random.uniform() < .5:
@@ -78,13 +79,13 @@ class BootstrappedDoubleQLearning(Bootstrapped):
                 a_n = np.array(
                     [np.random.choice(np.argwhere(q_ss == max_q).ravel())])
                 q_next = self.Qs[1-i_q].predict(next_state, a_n, idx=i)
-                self.Qs[i_q][i][state, action] = q_current[i] + self.alpha[i_q](
+                self.Qs[i_q][i][state, action] = q_current[i] + self.alpha[i_q][i](
                     state, action) * (
                         reward + self.mdp_info.gamma * q_next - q_current[i])
                 self._update_Q(state, action, idx=i)
         else:
             for i in np.argwhere(self._mask).ravel():
-                self.Qs[i_q][i][state, action] = q_current[i] + self.alpha[i_q](
+                self.Qs[i_q][i][state, action] = q_current[i] + self.alpha[i_q][i](
                     state, action) * (reward - q_current[i])
                 self._update_Q(state, action, idx=i)
 

@@ -6,8 +6,8 @@ from joblib import Parallel, delayed
 from mushroom.core import Core
 from mushroom.environments.generators.taxi import generate_taxi
 from mushroom.utils.callbacks import CollectDataset
-from mushroom.utils.dataset import compute_J, parse_dataset
-from mushroom.utils.parameters import Parameter
+from mushroom.utils.dataset import parse_dataset
+from mushroom.utils.parameters import ExponentialDecayParameter
 
 from boot_q_learning import BootstrappedDoubleQLearning
 sys.path.append('..')
@@ -24,7 +24,8 @@ def experiment(n_approximators, policy):
     pi = policy(n_approximators)
 
     # Agent
-    learning_rate = Parameter(value=.15)
+    learning_rate = ExponentialDecayParameter(value=1., decay_exp=.3,
+                                              size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
     agent = BootstrappedDoubleQLearning(pi, mdp.info, **algorithm_params)
 
