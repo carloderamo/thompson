@@ -110,6 +110,11 @@ class SimpleNet:
                 self._mask = tf.placeholder(
                     tf.float32, shape=[None, convnet_pars['n_approximators']])
 
+            if convnet_pars['n_states'] is not None:
+                x = tf.one_hot(tf.cast(self._x[..., 0], tf.uint8))
+            else:
+                x = self._x[..., 0]
+
             self._features = list()
             self._features2 = list()
             self._q = list()
@@ -117,7 +122,7 @@ class SimpleNet:
             for i in range(convnet_pars['n_approximators']):
                 with tf.variable_scope('head_' + str(i)):
                     self._features.append(tf.layers.dense(
-                        self._x[..., 0], convnet_pars['n_features'],
+                        x, convnet_pars['n_features'],
                         activation=tf.nn.relu,
                         kernel_initializer=tf.glorot_uniform_initializer(),
                         name='features_' + str(i)

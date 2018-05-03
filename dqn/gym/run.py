@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from mushroom.core.core import Core
 from mushroom.environments import *
+from mushroom.environments.generators.taxi import generate_taxi
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 
@@ -132,7 +133,11 @@ def experiment(policy):
 
     # Evaluation of the model provided by the user.
     if args.load_path:
-        mdp = Gym(args.name, 1000, .99)
+        # MDP
+        if args.name != 'Taxi':
+            mdp = Gym(args.name, 1000, .99)
+        else:
+            mdp = generate_taxi('../../grid.txt')
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
@@ -206,7 +211,12 @@ def experiment(policy):
             max_steps = args.max_steps
 
         # MDP
-        mdp = Gym(args.name, 1000, .99)
+        if args.name != 'Taxi':
+            mdp = Gym(args.name, 1000, .99)
+            n_states = None
+        else:
+            mdp = generate_taxi('../../grid.txt')
+            n_states = mdp.info.observation_space.size[0]
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -228,6 +238,7 @@ def experiment(policy):
         approximator_params = dict(
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
+            n_states=n_states,
             n_actions=mdp.info.action_space.n,
             n_features=args.n_features,
             n_approximators=args.n_approximators,
