@@ -111,7 +111,8 @@ class SimpleNet:
                     tf.float32, shape=[None, convnet_pars['n_approximators']])
 
             if convnet_pars['n_states'] is not None:
-                x = tf.one_hot(tf.cast(self._x[..., 0], tf.uint8))
+                x = tf.one_hot(tf.cast(self._x[..., 0], tf.uint8),
+                               convnet_pars['n_states'])[:, 0]
             else:
                 x = self._x[..., 0]
 
