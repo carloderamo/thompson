@@ -21,7 +21,9 @@ def experiment(n_approximators, policy):
     mdp = generate_taxi('../grid.txt')
 
     # Policy
-    pi = policy(n_approximators)
+    epsilon = ExponentialDecayParameter(value=1., decay_exp=.5,
+                                        size=mdp.info.observation_space.size)
+    pi = policy(n_approximators, epsilon=epsilon)
 
     # Agent
     learning_rate = ExponentialDecayParameter(value=1., decay_exp=.3,
@@ -35,7 +37,7 @@ def experiment(n_approximators, policy):
     core = Core(agent, mdp, callbacks)
 
     # Train
-    n_steps = 3e5
+    n_steps = 6e5
     core.learn(n_steps=n_steps, n_steps_per_fit=1, quiet=True)
 
     dataset = collect_dataset.get()
