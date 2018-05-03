@@ -296,7 +296,6 @@ def experiment(policy):
                                      quiet=args.quiet)
         scores.append(get_stats(dataset))
 
-        np.save(folder_name + '/scores.npy', scores)
         for n_epoch in range(1, max_steps // evaluation_frequency + 1):
             print_epoch(n_epoch)
             print('- Learning:')
@@ -320,8 +319,6 @@ def experiment(policy):
                                          quiet=args.quiet)
             scores.append(get_stats(dataset))
 
-            np.save(folder_name + '/scores.npy', scores)
-
     return scores
 
 
@@ -333,3 +330,6 @@ if __name__ == '__main__':
         out = Parallel(n_jobs=-1)(
             delayed(experiment)(p) for _ in range(n_experiments))
         tf.reset_default_graph()
+
+    np.save(folder_name + '/scores.npy', out)
+
