@@ -41,14 +41,11 @@ def get_stats(dataset):
     return J
 
 
-def experiment(policy):
+def experiment(policy, name, folder_name):
     np.random.seed()
 
     # Argument parser
     parser = argparse.ArgumentParser()
-
-    arg_mdp = parser.add_argument_group('Game')
-    arg_mdp.add_argument("--name", type=str, default='Acrobot-v1')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=5000,
@@ -134,8 +131,8 @@ def experiment(policy):
     # Evaluation of the model provided by the user.
     if args.load_path:
         # MDP
-        if args.name != 'Taxi':
-            mdp = Gym(args.name, 1000, .99)
+        if name != 'Taxi':
+            mdp = Gym(name, 1000, .99)
             n_states = None
         else:
             mdp = generate_taxi('../../grid.txt')
@@ -192,9 +189,6 @@ def experiment(policy):
     else:
         # DQN learning run
 
-        # Summary folder
-        folder_name = './logs/' + policy + '/' + args.name
-
         # Settings
         if args.debug:
             initial_replay_size = 50
@@ -214,8 +208,8 @@ def experiment(policy):
             max_steps = args.max_steps
 
         # MDP
-        if args.name != 'Taxi':
-            mdp = Gym(args.name, 1000, .99)
+        if name != 'Taxi':
+            mdp = Gym(name, 1000, .99)
             n_states = None
         else:
             mdp = generate_taxi('../../grid.txt')
@@ -324,12 +318,15 @@ def experiment(policy):
 
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
+    name = 'Acrobot-v1'
+
     n_experiments = 10
 
     for p in policy:
+        folder_name = './logs/' + p + '/' + name
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p) for _ in range(n_experiments))
+            delayed(experiment)(p, name,
+                                folder_name) for _ in range(n_experiments))
         tf.reset_default_graph()
 
-        os.mkdir(p)
-        np.save('./logs/' + p + '/' + args.name + '/scores.npy', out)
+        np.save(folder_name + '/scores.npy', out)
