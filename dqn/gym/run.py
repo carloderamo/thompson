@@ -331,5 +331,5 @@ if __name__ == '__main__':
             delayed(experiment)(p) for _ in range(n_experiments))
         tf.reset_default_graph()
 
-        np.save(policy + '/scores.npy', out)
+        np.save(p + '/scores.npy', out)
 
