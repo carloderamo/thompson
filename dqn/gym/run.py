@@ -332,4 +332,4 @@ if __name__ == '__main__':
         tf.reset_default_graph()
 
         os.mkdir(p)
-        np.save(p + '/scores.npy', out)
+        np.save('./logs/' + p + '/scores.npy', out)
