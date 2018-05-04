@@ -41,16 +41,16 @@ def get_stats(dataset):
     return J
 
 
-def experiment(policy, name, folder_name):
+def experiment(policy, name, horizon, folder_name):
     np.random.seed()
 
     # Argument parser
     parser = argparse.ArgumentParser()
 
     arg_mem = parser.add_argument_group('Replay Memory')
-    arg_mem.add_argument("--initial-replay-size", type=int, default=5000,
+    arg_mem.add_argument("--initial-replay-size", type=int, default=32,
                          help='Initial size of the replay memory.')
-    arg_mem.add_argument("--max-replay-size", type=int, default=50000,
+    arg_mem.add_argument("--max-replay-size", type=int, default=5000,
                          help='Max size of the replay memory.')
 
     arg_net = parser.add_argument_group('Deep Q-Network')
@@ -62,7 +62,7 @@ def experiment(policy, name, folder_name):
                                   'rmspropcentered'],
                          default='adam',
                          help='Name of the optimizer to use to learn.')
-    arg_net.add_argument("--learning-rate", type=float, default=.001,
+    arg_net.add_argument("--learning-rate", type=float, default=.0001,
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
     arg_net.add_argument("--decay", type=float, default=.95,
@@ -75,22 +75,22 @@ def experiment(policy, name, folder_name):
     arg_alg.add_argument("--n-approximators", type=int, default=10,
                          help="Number of approximators used in the ensemble for"
                               "Averaged DQN.")
-    arg_alg.add_argument("--batch-size", type=int, default=32,
+    arg_alg.add_argument("--batch-size", type=int, default=100,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=1,
                          help='Number of frames composing a state.')
-    arg_alg.add_argument("--target-update-frequency", type=int, default=400,
+    arg_alg.add_argument("--target-update-frequency", type=int, default=100,
                          help='Number of collected samples before each update'
                               'of the target network.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=5000,
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=1000,
                          help='Number of learning step before each evaluation.'
                               'This number represents an epoch.')
-    arg_alg.add_argument("--train-frequency", type=int, default=4,
+    arg_alg.add_argument("--train-frequency", type=int, default=1,
                          help='Number of learning steps before each fit of the'
                               'neural network.')
-    arg_alg.add_argument("--max-steps", type=int, default=250000,
+    arg_alg.add_argument("--max-steps", type=int, default=50000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=10000,
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=1,
                          help='Number of steps until the exploration rate stops'
                               'decreasing.')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=0.,
@@ -100,7 +100,7 @@ def experiment(policy, name, folder_name):
                               'reaches this values, it stays constant.')
     arg_alg.add_argument("--test-exploration-rate", type=float, default=0.,
                          help='Exploration rate used during evaluation.')
-    arg_alg.add_argument("--test-samples", type=int, default=5000,
+    arg_alg.add_argument("--test-samples", type=int, default=1000,
                          help='Number of steps for each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=0,
                          help='Maximum number of no-op action performed at the'
@@ -132,7 +132,7 @@ def experiment(policy, name, folder_name):
     if args.load_path:
         # MDP
         if name != 'Taxi':
-            mdp = Gym(name, 1000, .99)
+            mdp = Gym(name, horizon, .99)
             n_states = None
         else:
             mdp = generate_taxi('../../grid.txt')
@@ -209,7 +209,7 @@ def experiment(policy, name, folder_name):
 
         # MDP
         if name != 'Taxi':
-            mdp = Gym(name, 1000, .99)
+            mdp = Gym(name, horizon, .99)
             n_states = None
         else:
             mdp = generate_taxi('../../grid.txt')
@@ -318,14 +318,15 @@ def experiment(policy, name, folder_name):
 
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
-    name = 'Acrobot-v1'
+    name = 'CartPole-v1'
+    horizon = 500
 
     n_experiments = 10
 
     for p in policy:
         folder_name = './logs/' + p + '/' + name
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p, name,
+            delayed(experiment)(p, name, horizon,
                                 folder_name) for _ in range(n_experiments))
         tf.reset_default_graph()
 
