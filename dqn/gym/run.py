@@ -319,7 +319,7 @@ def experiment(policy, name, horizon, folder_name):
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
     name = 'CartPole-v1'
-    horizon = 500
+    horizon = 1000
 
     n_experiments = 10
 
