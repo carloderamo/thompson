@@ -69,13 +69,13 @@ def experiment():
                                   'adam',
                                   'rmsprop',
                                   'rmspropcentered'],
-                         default='rmspropcentered',
+                         default='rmsprop',
                          help='Name of the optimizer to use to learn.')
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
     arg_net.add_argument("--decay", type=float, default=.95)
-    arg_net.add_argument("--epsilon", type=float, default=.01)
+    arg_net.add_argument("--epsilon", type=float, default=1e-10)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--weighted", action='store_true')
