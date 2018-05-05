@@ -27,10 +27,9 @@ def experiment(n_approximators, policy):
     pi = policy(n_approximators, epsilon=epsilon)
 
     # Agent
-    # learning_rate = ExponentialDecayParameter(value=1., decay_exp=.3,
-    #                                           size=mdp.info.size)
-    learning_rate = Parameter(.15)
-    algorithm_params = dict(learning_rate=learning_rate, sigma=2.)
+    learning_rate = ExponentialDecayParameter(value=1., decay_exp=.3,
+                                              size=mdp.info.size)
+    algorithm_params = dict(learning_rate=learning_rate, sigma=5.)
     agent = BootstrappedDoubleQLearning(pi, mdp.info, **algorithm_params)
 
     # Algorithm
