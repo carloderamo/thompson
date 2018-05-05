@@ -108,7 +108,7 @@ def experiment(policy, name, horizon, folder_name):
                               'history_length.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
-    arg_alg.add_argument("--p-mask", type=float, default=2 / 3.)
+    arg_alg.add_argument("--p-mask", type=float, default=1.)
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--load-path', type=str,
@@ -319,7 +319,7 @@ def experiment(policy, name, horizon, folder_name):
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
     name = 'CartPole-v1'
-    horizon = 1000
+    horizon = 500
 
     n_experiments = 10
 
