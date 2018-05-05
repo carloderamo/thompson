@@ -7,7 +7,7 @@ from mushroom.core import Core
 from mushroom.environments.generators.taxi import generate_taxi
 from mushroom.utils.callbacks import CollectDataset
 from mushroom.utils.dataset import parse_dataset
-from mushroom.utils.parameters import ExponentialDecayParameter
+from mushroom.utils.parameters import ExponentialDecayParameter, Parameter
 
 from boot_q_learning import BootstrappedDoubleQLearning
 sys.path.append('..')
@@ -21,14 +21,16 @@ def experiment(n_approximators, policy):
     mdp = generate_taxi('../grid.txt')
 
     # Policy
-    epsilon = ExponentialDecayParameter(value=1., decay_exp=.5,
-                                        size=mdp.info.observation_space.size)
+    # epsilon = ExponentialDecayParameter(value=1., decay_exp=.5,
+    #                                     size=mdp.info.observation_space.size)
+    epsilon = Parameter(0.)
     pi = policy(n_approximators, epsilon=epsilon)
 
     # Agent
-    learning_rate = ExponentialDecayParameter(value=1., decay_exp=.3,
-                                              size=mdp.info.size)
-    algorithm_params = dict(learning_rate=learning_rate)
+    # learning_rate = ExponentialDecayParameter(value=1., decay_exp=.3,
+    #                                           size=mdp.info.size)
+    learning_rate = Parameter(.15)
+    algorithm_params = dict(learning_rate=learning_rate, sigma=2.)
     agent = BootstrappedDoubleQLearning(pi, mdp.info, **algorithm_params)
 
     # Algorithm

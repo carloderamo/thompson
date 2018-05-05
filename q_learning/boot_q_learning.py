@@ -48,7 +48,7 @@ class BootstrappedQLearning(Bootstrapped):
 
 class BootstrappedDoubleQLearning(Bootstrapped):
     def __init__(self, policy, mdp_info, learning_rate, n_approximators=10,
-                 mu=0., sigma=1., p=2 / 3.):
+                 mu=0., sigma=1., p=1.):
         super(BootstrappedDoubleQLearning, self).__init__(
             policy, mdp_info, learning_rate, n_approximators, mu, sigma, p
         )
