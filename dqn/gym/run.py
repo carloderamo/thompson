@@ -34,8 +34,8 @@ def print_epoch(epoch):
     print('----------------------------------------------------------------')
 
 
-def get_stats(dataset):
-    J = np.mean(compute_J(dataset, 1.))
+def get_stats(dataset, gamma):
+    J = np.mean(compute_J(dataset, gamma))
     print('J: %f' % J)
 
     return J
@@ -134,9 +134,11 @@ def experiment(policy, name, horizon, folder_name):
         if name != 'Taxi':
             mdp = Gym(name, horizon, .99)
             n_states = None
+            gamma_eval = 1.
         else:
             mdp = generate_taxi('../../grid.txt')
             n_states = mdp.info.observation_space.size[0]
+            gamma_eval = mdp.info.gamma
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
@@ -189,7 +191,7 @@ def experiment(policy, name, horizon, folder_name):
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset)
+        get_stats(dataset, gamma_eval)
     else:
         # DQN learning run
 
@@ -215,9 +217,11 @@ def experiment(policy, name, horizon, folder_name):
         if name != 'Taxi':
             mdp = Gym(name, horizon, .99)
             n_states = None
+            gamma_eval = 1.
         else:
             mdp = generate_taxi('../../grid.txt')
             n_states = mdp.info.observation_space.size[0]
+            gamma_eval = mdp.info.gamma
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -292,7 +296,7 @@ def experiment(policy, name, horizon, folder_name):
         dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        scores.append(get_stats(dataset))
+        scores.append(get_stats(dataset, gamma_eval))
 
         for n_epoch in range(1, max_steps // evaluation_frequency + 1):
             print_epoch(n_epoch)
@@ -315,7 +319,7 @@ def experiment(policy, name, horizon, folder_name):
             dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
-            scores.append(get_stats(dataset))
+            scores.append(get_stats(dataset, gamma_eval))
 
     return scores
 
