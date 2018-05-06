@@ -326,8 +326,8 @@ def experiment(policy, name, horizon, folder_name):
 
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
-    name = 'Acrobot-v1'
-    horizon = 500
+    name = 'LunarLander-v2'
+    horizon = 1000 if name == 'LunarLander-v2' else 500
 
     n_experiments = 10
 
