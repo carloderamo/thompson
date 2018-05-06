@@ -209,6 +209,8 @@ class SimpleNet:
         for i in range(len(self._features)):
             tf.add_to_collection(self._scope_name + '_features_' + str(i),
                                  self._features[i])
+            tf.add_to_collection(self._scope_name + '_features2_' + str(i),
+                                 self._features2[i])
             tf.add_to_collection(self._scope_name + '_q_' + str(i), self._q[i])
             tf.add_to_collection(self._scope_name + '_q_acted_' + str(i),
                                  self._q_acted[i])
@@ -219,12 +221,24 @@ class SimpleNet:
     def _restore_collection(self, convnet_pars):
         self._x = tf.get_collection(self._scope_name + '_x')[0]
         self._action = tf.get_collection(self._scope_name + '_action')[0]
+
+        features = list()
+        features2 = list()
+        q = list()
+        q_acted = list()
         for i in range(convnet_pars['n_approximators']):
-            self._features[i] = tf.get_collection(
-                self._scope_name + '_features_' + str(i))[0]
-            self._q[i] = tf.get_collection(self._scope_name + '_q_' + str(i))[0]
-            self._q_acted[i] = tf.get_collection(
-                self._scope_name + '_q_acted_' + str(i))[0]
+            features.append(tf.get_collection(
+                self._scope_name + '_features_' + str(i))[0])
+            features2.append(tf.get_collection(
+                self._scope_name + '_features2_' + str(i))[0])
+            q.append(tf.get_collection(self._scope_name + '_q_' + str(i))[0])
+            q_acted.append(tf.get_collection(
+                self._scope_name + '_q_acted_' + str(i))[0])
+
+        self._features = features
+        self._features2 = features2
+        self._q = q
+        self._q_acted = q_acted
         self._target_q = tf.get_collection(self._scope_name + '_target_q')[0]
         self._merged = tf.get_collection(self._scope_name + '_merged')[0]
         self._train_step = tf.get_collection(

@@ -165,10 +165,14 @@ def experiment(policy, name, horizon, folder_name):
 
         # Agent
         algorithm_params = dict(
+            batch_size=0,
+            initial_replay_size=0,
             max_replay_size=0,
-            n_approximators=args.n_approximators,
-            history_length=args.history_length,
+            history_length=1,
             clip_reward=False,
+            n_approximators=args.n_approximators,
+            train_frequency=1,
+            target_update_frequency=1,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
