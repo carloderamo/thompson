@@ -48,7 +48,7 @@ def experiment(policy, name, horizon, folder_name):
     parser = argparse.ArgumentParser()
 
     arg_mem = parser.add_argument_group('Replay Memory')
-    arg_mem.add_argument("--initial-replay-size", type=int, default=32,
+    arg_mem.add_argument("--initial-replay-size", type=int, default=1000,
                          help='Initial size of the replay memory.')
     arg_mem.add_argument("--max-replay-size", type=int, default=5000,
                          help='Max size of the replay memory.')
@@ -326,7 +326,7 @@ def experiment(policy, name, horizon, folder_name):
 
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
-    name = 'CartPole-v1'
+    name = 'Acrobot-v1'
     horizon = 500
 
     n_experiments = 10
