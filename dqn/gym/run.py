@@ -41,11 +41,15 @@ def get_stats(dataset, gamma):
     return J
 
 
-def experiment(policy, name, horizon, gamma, folder_name):
+def experiment(policy, name, folder_name):
     np.random.seed()
 
     # Argument parser
     parser = argparse.ArgumentParser()
+
+    arg_mdp = parser.add_argument_group('Environment')
+    arg_mdp.add_argument("--horizon", type=int)
+    arg_mdp.add_argument("--gamma", type=float)
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=100,
@@ -132,7 +136,7 @@ def experiment(policy, name, horizon, gamma, folder_name):
     if args.load_path:
         # MDP
         if name != 'Taxi':
-            mdp = Gym(name, horizon, gamma)
+            mdp = Gym(name, args.horizon, args.gamma)
             n_states = None
             gamma_eval = 1.
         else:
@@ -215,7 +219,7 @@ def experiment(policy, name, horizon, gamma, folder_name):
 
         # MDP
         if name != 'Taxi':
-            mdp = Gym(name, horizon, gamma)
+            mdp = Gym(name, args.horizon, args.gamma)
             n_states = None
             gamma_eval = 1.
         else:
@@ -327,15 +331,13 @@ def experiment(policy, name, horizon, gamma, folder_name):
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
     name = 'LunarLander-v2'
-    horizon = 1000 if name == 'LunarLander-v2' else 500
-    gamma = .999 if name == 'LunarLander-v2' else .99
 
     n_experiments = 10
 
     for p in policy:
         folder_name = './logs/' + p + '/' + name
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p, name, horizon, gamma,
+            delayed(experiment)(p, name,
                                 folder_name) for _ in range(n_experiments))
         tf.reset_default_graph()
 
