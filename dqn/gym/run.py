@@ -330,7 +330,7 @@ def experiment(policy, name, folder_name):
 
 if __name__ == '__main__':
     policy = ['boot', 'weighted']
-    name = 'LunarLander-v2'
+    name = 'Acrobot-v1'
 
     n_experiments = 10
 
