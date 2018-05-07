@@ -41,7 +41,7 @@ def get_stats(dataset, gamma):
     return J
 
 
-def experiment(policy, name, horizon, folder_name):
+def experiment(policy, name, horizon, gamma, folder_name):
     np.random.seed()
 
     # Argument parser
@@ -132,7 +132,7 @@ def experiment(policy, name, horizon, folder_name):
     if args.load_path:
         # MDP
         if name != 'Taxi':
-            mdp = Gym(name, horizon, .99)
+            mdp = Gym(name, horizon, gamma)
             n_states = None
             gamma_eval = 1.
         else:
@@ -215,7 +215,7 @@ def experiment(policy, name, horizon, folder_name):
 
         # MDP
         if name != 'Taxi':
-            mdp = Gym(name, horizon, .99)
+            mdp = Gym(name, horizon, gamma)
             n_states = None
             gamma_eval = 1.
         else:
@@ -328,13 +328,14 @@ if __name__ == '__main__':
     policy = ['boot', 'weighted']
     name = 'LunarLander-v2'
     horizon = 1000 if name == 'LunarLander-v2' else 500
+    gamma = .999 if name == 'LunarLander-v2' else .99
 
     n_experiments = 10
 
     for p in policy:
         folder_name = './logs/' + p + '/' + name
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p, name, horizon,
+            delayed(experiment)(p, name, horizon, gamma
                                 folder_name) for _ in range(n_experiments))
         tf.reset_default_graph()
 
