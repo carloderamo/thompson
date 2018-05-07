@@ -335,7 +335,7 @@ if __name__ == '__main__':
     for p in policy:
         folder_name = './logs/' + p + '/' + name
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p, name, horizon, gamma
+            delayed(experiment)(p, name, horizon, gamma,
                                 folder_name) for _ in range(n_experiments))
         tf.reset_default_graph()
 
