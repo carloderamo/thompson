@@ -25,10 +25,10 @@ class Bootstrapped(TD):
 
         self.alpha = [deepcopy(self.alpha)] * n_approximators
 
-    def draw_action(self, state):
+    def episode_start(self):
         self.policy.set_idx(np.random.randint(self._n_approximators))
 
-        return super(Bootstrapped, self).draw_action(state)
+        return super(Bootstrapped, self).episode_start()
 
     def _update(self, state, action, reward, next_state, absorbing):
         raise NotImplementedError
