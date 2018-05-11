@@ -102,7 +102,9 @@ class DQN(Agent):
         max_q = np.max(q, axis=2)
 
         if self._weighted:
-            np.random.shuffle(max_q)
+            idx = np.random.randint(self._n_approximators,
+                                    size=self._n_approximators)
+            max_q = max_q[idx]
 
         return max_q.T
 
@@ -153,7 +155,9 @@ class DoubleDQN(DQN):
                 double_q[i, j] = tq[i, j, max_a[i, j]]
 
         if self._weighted:
-            np.random.shuffle(double_q)
+            idx = np.random.randint(self._n_approximators,
+                                    size=self._n_approximators)
+            double_q = double_q[idx]
 
         return double_q.T
 
