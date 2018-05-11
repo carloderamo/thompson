@@ -13,13 +13,14 @@ class DQN(Agent):
                  target_update_frequency, initial_replay_size, train_frequency,
                  max_replay_size, fit_params=None, approximator_params=None,
                  n_approximators=1, history_length=1, clip_reward=True,
-                 max_no_op_actions=0, no_op_action_value=0, p_mask=2 / 3.,
-                 dtype=np.float32):
+                 weighted=False, max_no_op_actions=0, no_op_action_value=0,
+                 p_mask=2 / 3., dtype=np.float32):
         self._fit_params = dict() if fit_params is None else fit_params
 
         self._batch_size = batch_size
         self._n_approximators = n_approximators
         self._clip_reward = clip_reward
+        self._weighted = weighted
         self._target_update_frequency = target_update_frequency // train_frequency
         self._max_no_op_actions = max_no_op_actions
         self._no_op_action_value = no_op_action_value
@@ -98,7 +99,12 @@ class DQN(Agent):
             if absorbing[i]:
                 q[:, i, :] *= 1. - absorbing[i]
 
-        return np.max(q, axis=2).T
+        max_q = np.max(q, axis=2)
+
+        if self._weighted:
+            np.random.shuffle(max_q)
+
+        return max_q.T
 
     def draw_action(self, state):
         self._buffer.add(state)
@@ -145,6 +151,9 @@ class DoubleDQN(DQN):
         for i in range(double_q.shape[0]):
             for j in range(double_q.shape[1]):
                 double_q[i, j] = tq[i, j, max_a[i, j]]
+
+        if self._weighted:
+            np.random.shuffle(double_q)
 
         return double_q.T
 

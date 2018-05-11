@@ -29,7 +29,8 @@ def experiment(n_approximators, policy):
     # Agent
     learning_rate = ExponentialDecayParameter(value=1., decay_exp=.3,
                                               size=mdp.info.size)
-    algorithm_params = dict(learning_rate=learning_rate, sigma=5.)
+    algorithm_params = dict(learning_rate=learning_rate, sigma=1.,
+                            weighted=policy is WeightedPolicy)
     agent = BootstrappedDoubleQLearning(pi, mdp.info, **algorithm_params)
 
     # Algorithm
@@ -51,7 +52,7 @@ def experiment(n_approximators, policy):
 
 
 if __name__ == '__main__':
-    n_experiment = 10
+    n_experiment = 100
     n_approximators = 10
 
     policy_name = {BootPolicy: 'Boot', WeightedPolicy: 'Weighted'}

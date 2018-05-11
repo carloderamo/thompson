@@ -8,11 +8,12 @@ from mushroom.utils.table import EnsembleTable
 
 class Bootstrapped(TD):
     def __init__(self, policy, mdp_info, learning_rate, n_approximators=10,
-                 mu=0., sigma=1., p=2 / 3.):
+                 mu=0., sigma=1., p=2 / 3., weighted=False):
         self._n_approximators = n_approximators
         self._mu = mu
         self._sigma = sigma
         self._p = p
+        self._weighted = weighted
         self._mask = np.random.binomial(1, self._p, self._n_approximators)
         self.Q = EnsembleTable(self._n_approximators, mdp_info.size)
         for i in range(len(self.Q.model)):
@@ -38,7 +39,12 @@ class BootstrappedQLearning(Bootstrapped):
         q_current = np.array([x[state, action] for x in self.Q.model])
 
         for i in np.argwhere(self._mask).ravel():
-            q_next = np.max(self.Q[i][next_state]) if not absorbing else 0.
+            if self._weighted:
+                idx = np.random.randint(self._n_approximators)
+            else:
+                idx = i
+
+            q_next = np.max(self.Q[idx][next_state]) if not absorbing else 0.
             self.Q.model[i][
                 state, action] = q_current[i] + self.alpha[i](state, action) * (
                 reward + self.mdp_info.gamma * q_next - q_current[i])
@@ -75,11 +81,16 @@ class BootstrappedDoubleQLearning(Bootstrapped):
         q_current = np.array([x[state, action] for x in self.Qs[i_q]])
         if not absorbing:
             for i in np.argwhere(self._mask).ravel():
-                q_ss = self.Qs[i_q].predict(next_state, idx=i)
+                if self._weighted:
+                    idx = np.random.randint(self._n_approximators)
+                else:
+                    idx = i
+
+                q_ss = self.Qs[i_q].predict(next_state, idx=idx)
                 max_q = np.max(q_ss)
                 a_n = np.array(
                     [np.random.choice(np.argwhere(q_ss == max_q).ravel())])
-                q_next = self.Qs[1-i_q].predict(next_state, a_n, idx=i)
+                q_next = self.Qs[1-i_q].predict(next_state, a_n, idx=idx)
                 self.Qs[i_q][i][state, action] = q_current[i] + self.alpha[i_q][i](
                     state, action) * (
                         reward + self.mdp_info.gamma * q_next - q_current[i])
