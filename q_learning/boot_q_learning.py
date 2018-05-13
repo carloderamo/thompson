@@ -8,12 +8,12 @@ from mushroom.utils.table import EnsembleTable
 
 class Bootstrapped(TD):
     def __init__(self, policy, mdp_info, learning_rate, n_approximators=10,
-                 mu=0., sigma=1., p=2 / 3., weighted=False):
+                 mu=0., sigma=1., p=2 / 3., cross_update=False):
         self._n_approximators = n_approximators
         self._mu = mu
         self._sigma = sigma
         self._p = p
-        self._weighted = weighted
+        self._cross_update = cross_update
         self._mask = np.random.binomial(1, self._p, self._n_approximators)
         self.Q = EnsembleTable(self._n_approximators, mdp_info.size)
         for i in range(len(self.Q.model)):
@@ -39,7 +39,7 @@ class BootstrappedQLearning(Bootstrapped):
         q_current = np.array([x[state, action] for x in self.Q.model])
 
         for i in np.argwhere(self._mask).ravel():
-            if self._weighted:
+            if self._cross_update:
                 idx = np.random.randint(self._n_approximators)
             else:
                 idx = i
@@ -54,10 +54,10 @@ class BootstrappedQLearning(Bootstrapped):
 
 class BootstrappedDoubleQLearning(Bootstrapped):
     def __init__(self, policy, mdp_info, learning_rate, n_approximators=10,
-                 mu=0., sigma=1., p=1., weighted=False):
+                 mu=0., sigma=1., p=1., cross_update=False):
         super(BootstrappedDoubleQLearning, self).__init__(
             policy, mdp_info, learning_rate, n_approximators, mu, sigma, p,
-            weighted
+            cross_update
         )
 
         self.Qs = [EnsembleTable(n_approximators, mdp_info.size),
@@ -82,7 +82,7 @@ class BootstrappedDoubleQLearning(Bootstrapped):
         q_current = np.array([x[state, action] for x in self.Qs[i_q]])
         if not absorbing:
             for i in np.argwhere(self._mask).ravel():
-                if self._weighted:
+                if self._cross_update:
                     idx = np.random.randint(self._n_approximators)
                 else:
                     idx = i
