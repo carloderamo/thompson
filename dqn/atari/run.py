@@ -79,6 +79,7 @@ def experiment():
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--weighted", action='store_true')
+    arg_alg.add_argument("--cross-update", action='store_true')
     arg_alg.add_argument("--n-approximators", type=int, default=10,
                          help="Number of approximators used in the ensemble for"
                               "Averaged DQN.")
@@ -169,7 +170,7 @@ def experiment():
             max_replay_size=1,
             history_length=args.history_length,
             clip_reward=True,
-            weighted=args.weighted,
+            cross_update=args.cross_update,
             train_frequency=args.train_frequency,
             n_approximators=args.n_approximators,
             target_update_frequency=args.target_update_frequency,
@@ -257,7 +258,7 @@ def experiment():
             max_replay_size=max_replay_size,
             history_length=args.history_length,
             clip_reward=True,
-            weighted=args.weighted,
+            cross_update=args.cross_update,
             train_frequency=args.train_frequency,
             n_approximators=args.n_approximators,
             target_update_frequency=target_update_frequency,

@@ -13,14 +13,14 @@ class DQN(Agent):
                  target_update_frequency, initial_replay_size, train_frequency,
                  max_replay_size, fit_params=None, approximator_params=None,
                  n_approximators=1, history_length=1, clip_reward=True,
-                 weighted=False, max_no_op_actions=0, no_op_action_value=0,
+                 cross_update=False, max_no_op_actions=0, no_op_action_value=0,
                  p_mask=2 / 3., dtype=np.float32):
         self._fit_params = dict() if fit_params is None else fit_params
 
         self._batch_size = batch_size
         self._n_approximators = n_approximators
         self._clip_reward = clip_reward
-        self._weighted = weighted
+        self._cross_update = cross_update
         self._target_update_frequency = target_update_frequency // train_frequency
         self._max_no_op_actions = max_no_op_actions
         self._no_op_action_value = no_op_action_value
@@ -101,7 +101,7 @@ class DQN(Agent):
 
         max_q = np.max(q, axis=2)
 
-        if self._weighted:
+        if self._cross_update:
             idx = np.random.randint(self._n_approximators,
                                     size=self._n_approximators)
             max_q = max_q[idx]
@@ -154,7 +154,7 @@ class DoubleDQN(DQN):
             for j in range(double_q.shape[1]):
                 double_q[i, j] = tq[i, j, max_a[i, j]]
 
-        if self._weighted:
+        if self._cross_update:
             idx = np.random.randint(self._n_approximators,
                                     size=self._n_approximators)
             double_q = double_q[idx]
