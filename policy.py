@@ -93,6 +93,8 @@ class WeightedPolicy(TDPolicy):
 
                 qs = np.array(q_list)
 
+                qs = ((qs.T - qs.mean(1)) / qs.std(1)).T
+
                 samples = np.ones(self._approximator.n_actions)
                 for a in range(self._approximator.n_actions):
                     idx = np.random.randint(self._n_approximators)
