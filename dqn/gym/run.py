@@ -1,11 +1,14 @@
 import argparse
-import os
 import sys
 
 from joblib import Parallel, delayed
 import numpy as np
-import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
 
+from mushroom.approximators.parametric import PyTorchApproximator
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.environments.generators.taxi import generate_taxi
@@ -16,16 +19,57 @@ sys.path.append('..')
 sys.path.append('../..')
 from dqn import DoubleDQN
 from policy import BootPolicy, WeightedPolicy
-from net import SimpleNet
 
 
-"""
-This script can be used to run Atari experiments with DQN.
+class Network(nn.Module):
+    def __init__(self, params):
+        super(Network, self).__init__()
 
-"""
+        n_input = params['input_shape'][-1]
+        n_output = params['output_shape'][0]
+        n_features = params['n_features']
+        self._n_approximators = params['n_approximators']
 
-# Disable tf cpp warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+        self._h1 = nn.ModuleList([nn.Linear(n_input, n_features) for _ in range(
+            self._n_approximators)])
+        self._h2 = nn.ModuleList([nn.Linear(n_features, n_features) for _ in range(
+            self._n_approximators)])
+        self._h3 = nn.ModuleList([nn.Linear(n_features, n_output) for _ in range(
+            self._n_approximators)])
+
+        for i in range(self._n_approximators):
+            nn.init.xavier_uniform_(self._h1[i].weight,
+                                    gain=nn.init.calculate_gain('relu'))
+            nn.init.xavier_uniform_(self._h2[i].weight,
+                                    gain=nn.init.calculate_gain('relu'))
+            nn.init.xavier_uniform_(self._h3[i].weight,
+                                    gain=nn.init.calculate_gain('linear'))
+
+    def forward(self, state, action=None, mask=None, idx=None):
+        features1 = list()
+        features2 = list()
+        q = list()
+
+        for i in range(self._n_approximators):
+            features1.append(F.relu(self._h1[i](torch.squeeze(state,
+                                                              1).float())))
+            features2.append(F.relu(self._h2[i](features1[i])))
+            q.append(self._h3[i](features2[i]))
+
+        q = torch.stack(q, dim=1)
+
+        if action is not None:
+            action = action.long()
+            q_acted = torch.squeeze(
+                q.gather(2, action.repeat(1,
+                                          self._n_approximators).unsqueeze(-1)))
+
+            q = q_acted
+
+        if mask is not None:
+            q *= torch.from_numpy(mask.astype(np.float32))
+
+        return q[:, idx] if idx is not None else q
 
 
 def print_epoch(epoch):
@@ -41,7 +85,7 @@ def get_stats(dataset, gamma):
     return J
 
 
-def experiment(policy, name, folder_name):
+def experiment(policy, name):
     np.random.seed()
 
     # Argument parser
@@ -132,6 +176,27 @@ def experiment(policy, name, folder_name):
 
     scores = list()
 
+    optimizer = dict()
+    if args.optimizer == 'adam':
+        optimizer['class'] = optim.Adam
+        optimizer['params'] = dict(lr=args.learning_rate)
+    elif args.optimizer == 'adadelta':
+        optimizer['class'] = optim.Adadelta
+        optimizer['params'] = dict(lr=args.learning_rate)
+    elif args.optimizer == 'rmsprop':
+        optimizer['class'] = optim.RMSprop
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   alpha=args.decay,
+                                   eps=args.epsilon)
+    elif args.optimizer == 'rmspropcentered':
+        optimizer['class'] = optim.RMSprop
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   alpha=args.decay,
+                                   eps=args.epsilon,
+                                   centered=True)
+    else:
+        raise ValueError
+
     # Evaluation of the model provided by the user.
     if args.load_path:
         # MDP
@@ -149,25 +214,22 @@ def experiment(policy, name, folder_name):
         pi = BootPolicy(args.n_approximators, epsilon=epsilon_test)
 
         # Approximator
-        input_shape = mdp.info.observation_space.shape + (args.history_length,)
+        input_shape = (1,) + mdp.info.observation_space.shape
         input_preprocessor = list()
         approximator_params = dict(
+            network=Network,
+            optimizer=optimizer,
+            loss=F.mse_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_states=n_states,
             n_actions=mdp.info.action_space.n,
             n_features=args.n_features,
             n_approximators=args.n_approximators,
-            input_preprocessor=input_preprocessor,
-            name='test',
-            load_path=args.load_path,
-            optimizer={'name': args.optimizer,
-                       'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+            input_preprocessor=input_preprocessor
         )
 
-        approximator = SimpleNet
+        approximator = PyTorchApproximator
 
         # Agent
         algorithm_params = dict(
@@ -242,24 +304,22 @@ def experiment(policy, name, folder_name):
             raise ValueError
 
         # Approximator
-        input_shape = mdp.info.observation_space.shape + (args.history_length,)
+        input_shape = (1,) + mdp.info.observation_space.shape
         input_preprocessor = list()
         approximator_params = dict(
+            network=Network,
+            optimizer=optimizer,
+            loss=F.mse_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_states=n_states,
             n_actions=mdp.info.action_space.n,
             n_features=args.n_features,
             n_approximators=args.n_approximators,
-            input_preprocessor=input_preprocessor,
-            folder_name=folder_name,
-            optimizer={'name': args.optimizer,
-                       'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+            input_preprocessor=input_preprocessor
         )
 
-        approximator = SimpleNet
+        approximator = PyTorchApproximator
 
         # Agent
         algorithm_params = dict(
@@ -332,13 +392,11 @@ if __name__ == '__main__':
     policy = ['boot', 'weighted']
     name = 'Acrobot-v1'
 
-    n_experiments = 10
+    n_experiments = 1
 
     for p in policy:
         folder_name = './logs/' + p + '/' + name
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p, name,
-                                folder_name) for _ in range(n_experiments))
-        tf.reset_default_graph()
+            delayed(experiment)(p, name) for _ in range(n_experiments))
 
         np.save(folder_name + '/scores.npy', out)

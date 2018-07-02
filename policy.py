@@ -24,7 +24,7 @@ class BootPolicy(TDPolicy):
                     for q in self._approximator.model:
                         q_list.append(q.predict(state))
                 else:
-                    q_list = self._approximator.predict(state).squeeze()
+                    q_list = self._approximator.predict(state)
 
                 max_as, count = np.unique(np.argmax(q_list, axis=1),
                                           return_counts=True)
@@ -75,7 +75,7 @@ class WeightedPolicy(TDPolicy):
                     for q in self._approximator.model:
                         q_list.append(q.predict(state))
                 else:
-                    q_list = self._approximator.predict(state).squeeze()
+                    q_list = self._approximator.predict(state)
 
                 max_as, count = np.unique(np.argmax(q_list, axis=1),
                                           return_counts=True)

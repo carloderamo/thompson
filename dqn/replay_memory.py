@@ -39,9 +39,9 @@ class Buffer(object):
             The elements in the buffer.
 
         """
-        s = np.empty(self._buf[0].shape + (self._size,), dtype=self._dtype)
+        s = np.empty((self._size,) + self._buf[0].shape, dtype=self._dtype)
         for i in range(self._size):
-            s[..., i] = self._buf[i]
+            s[i] = self._buf[i]
 
         return s
 
@@ -141,7 +141,8 @@ class ReplayMemory(object):
 
     def _get_dataset(self, idxs):
         """
-        Returns the states at the provided indexes.
+        Returns the dataset a the provided indexes concatenating the samples
+        contained in the ``history_length`` window.
 
         Args:
             idxs (list): the indexes of the states to return.
@@ -153,15 +154,15 @@ class ReplayMemory(object):
         s = self._get_state(idxs - 1)
         ss = self._get_state(idxs)
 
-        return s, self._actions[idxs - 1, ...], self._rewards[idxs - 1, ...],\
-            ss, self._absorbing[idxs - 1, ...], self._last[idxs - 1, ...],\
-               self._mask[idxs - 1, ...]
+        return s, self._actions[idxs - 1], self._rewards[idxs - 1], ss,\
+               self._absorbing[idxs - 1], self._last[idxs - 1],\
+               self._mask[idxs - 1]
 
     def _get_state(self, idxs):
         """
         Build a state from the elements in the replay memory. A state is
         composed of the elements at the provided index and the following
-        `history_length` elements.
+        ``history_length`` elements.
 
         Args:
             idxs (list): the indexes of the states to return.
@@ -170,18 +171,17 @@ class ReplayMemory(object):
             The states built from the elements at the provided indexes.
 
         """
-        s = np.empty((idxs.size,) + self._states.shape[1:] + (
-            self._history_length,), dtype=self._dtype)
+        s = np.empty((idxs.size,) + (self._history_length,) +
+                     self._states.shape[1:], dtype=self._dtype)
         for j, idx in enumerate(idxs):
             if idx >= self._history_length - 1:
                 for k in range(self._history_length):
-                    s[j, ..., self._history_length - 1 - k] = self._states[
-                        idx - k, ...]
+                    s[j, self._history_length - 1 - k] = self._states[idx - k]
             else:
                 indexes = [(idx - i) % self.size for i in
-                           reversed(range(self._history_length))]
+                           reversed(list(range(self._history_length)))]
                 for k, index in enumerate(indexes):
-                    s[j, ..., k] = self._states[index, ...]
+                    s[j, k] = self._states[index]
 
         return s
 

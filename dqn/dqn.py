@@ -93,14 +93,14 @@ class DQN(Agent):
             Maximum action-value for each state in `next_state`.
 
         """
-        q = np.array(self.target_approximator.predict(next_state))[0]
+        q = np.array(self.target_approximator.predict(next_state))
         for i in range(q.shape[1]):
             if absorbing[i]:
                 q[:, i, :] *= 1. - absorbing[i]
 
         max_q = np.max(q, axis=2)
 
-        return max_q.T
+        return max_q
 
     def draw_action(self, state):
         self._buffer.add(state)
@@ -135,8 +135,8 @@ class DoubleDQN(DQN):
 
     """
     def _next_q(self, next_state, absorbing):
-        q = np.array(self.approximator.predict(next_state))[0]
-        tq = np.array(self.target_approximator.predict(next_state))[0]
+        q = np.array(self.approximator.predict(next_state))
+        tq = np.array(self.target_approximator.predict(next_state))
         for i in range(q.shape[1]):
             if absorbing[i]:
                 tq[:, i, :] *= 1. - absorbing[i]
@@ -148,28 +148,4 @@ class DoubleDQN(DQN):
             for j in range(double_q.shape[1]):
                 double_q[i, j] = tq[i, j, max_a[i, j]]
 
-        return double_q.T
-
-
-class WeightedDQN(DQN):
-    """
-    ...
-
-    """
-    def _next_q(self, next_state, absorbing):
-        q = np.array(self.approximator.predict(next_state))[0]
-        tq = np.array(self.target_approximator.predict(next_state))[0]
-        for i in range(tq.shape[1]):
-            if absorbing[i]:
-                tq[:, i, :] *= 1. - absorbing[i]
-
-        W = np.zeros((next_state.shape[0], self._n_approximators))
-        for i in range(W.shape[0]):
-            max_a = np.argmax(q[:, i, :], axis=1)
-            max_idx, max_count = np.unique(max_a, return_counts=True)
-            count = np.zeros(self.mdp_info.action_space.n)
-            count[max_idx] = max_count
-            w = count / float(self._n_approximators)
-            W[i] = np.dot(tq[:, i, :], w)
-
-        return W
+        return double_q
