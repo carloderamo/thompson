@@ -1,4 +1,5 @@
 import argparse
+import pathlib
 import sys
 
 from joblib import Parallel, delayed
@@ -396,6 +397,7 @@ if __name__ == '__main__':
 
     for p in policy:
         folder_name = './logs/' + p + '/' + name
+        pathlib.Path(folder_name).mkdir(parents=True)
         out = Parallel(n_jobs=-1)(
             delayed(experiment)(p, name) for _ in range(n_experiments))
 
