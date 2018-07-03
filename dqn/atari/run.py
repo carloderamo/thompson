@@ -246,7 +246,7 @@ def experiment():
         approximator_params = dict(
             network=Network,
             optimizer=optimizer,
-            loss=F.mse_loss,
+            loss=F.smooth_l1_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
@@ -335,7 +335,7 @@ def experiment():
         approximator_params = dict(
             network=Network,
             optimizer=optimizer,
-            loss=F.mse_loss,
+            loss=F.smooth_l1_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
