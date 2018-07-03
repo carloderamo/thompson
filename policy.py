@@ -89,7 +89,7 @@ class WeightedPolicy(TDPolicy):
                     for i in range(self._n_approximators):
                         q_list.append(self._approximator.predict(state, idx=i))
                 else:
-                    q_list = self._approximator.predict(state).squeeze()
+                    q_list = self._approximator.predict(state)
 
                 qs = np.array(q_list)
 

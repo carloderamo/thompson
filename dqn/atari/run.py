@@ -1,11 +1,16 @@
 import argparse
-import os
+import datetime
+import pathlib
 import sys
 
 from joblib import Parallel, delayed
 import numpy as np
-import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
 
+from mushroom.approximators.parametric import PyTorchApproximator
 from mushroom.core.core import Core
 from mushroom.environments import Atari
 from mushroom.utils.dataset import compute_scores
@@ -15,16 +20,84 @@ sys.path.append('..')
 sys.path.append('../..')
 from dqn import DoubleDQN
 from policy import BootPolicy, WeightedPolicy
-from net import ConvNet
+
+
+class Network(nn.Module):
+    def __init__(self, params):
+        super(Network, self).__init__()
+
+        n_input = params['input_shape'][0]
+        n_output = params['output_shape'][0]
+        self._n_approximators = params['n_approximators']
+
+        self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
+        self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+
+        self._h1.weight.register_hook(
+            lambda grad: grad / self._n_approximators)
+        self._h1.bias.register_hook(
+            lambda grad: grad / self._n_approximators)
+
+        self._h2.weight.register_hook(
+            lambda grad: grad / self._n_approximators)
+        self._h2.bias.register_hook(
+            lambda grad: grad / self._n_approximators)
+
+        self._h3.weight.register_hook(
+            lambda grad: grad / self._n_approximators)
+        self._h3.bias.register_hook(
+            lambda grad: grad / self._n_approximators)
+
+        self._h4 = nn.ModuleList([nn.Linear(3136, 512) for _ in range(
+            self._n_approximators)])
+        self._h5 = nn.ModuleList([nn.Linear(512, n_output) for _ in range(
+            self._n_approximators)])
+
+        nn.init.xavier_uniform_(self._h1.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h2.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h3.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        for i in range(self._n_approximators):
+            nn.init.xavier_uniform_(self._h4[i].weight,
+                                    gain=nn.init.calculate_gain('relu'))
+            nn.init.xavier_uniform_(self._h5[i].weight,
+                                    gain=nn.init.calculate_gain('linear'))
+
+    def forward(self, state, action=None, mask=None, idx=None):
+        h = F.relu(self._h1(state.float() / 255.))
+        h = F.relu(self._h2(h))
+        h = F.relu(self._h3(h))
+
+        features = list()
+        q = list()
+
+        for i in range(self._n_approximators):
+            features.append(F.relu(self._h4[i](h.view(-1, 3136))))
+            q.append(self._h5[i](features[i]))
+
+        q = torch.stack(q, dim=1)
+
+        if action is not None:
+            action = action.long()
+            q_acted = torch.squeeze(
+                q.gather(2, action.repeat(1,
+                                          self._n_approximators).unsqueeze(-1)))
+
+            q = q_acted
+
+        if mask is not None:
+            q *= torch.from_numpy(mask.astype(np.float32))
+
+        return q[:, idx] if idx is not None else q
 
 
 """
 This script can be used to run Atari experiments with DQN.
 
 """
-
-# Disable tf cpp warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def print_epoch(epoch):
@@ -135,6 +208,27 @@ def experiment():
 
     scores = list()
 
+    optimizer = dict()
+    if args.optimizer == 'adam':
+        optimizer['class'] = optim.Adam
+        optimizer['params'] = dict(lr=args.learning_rate)
+    elif args.optimizer == 'adadelta':
+        optimizer['class'] = optim.Adadelta
+        optimizer['params'] = dict(lr=args.learning_rate)
+    elif args.optimizer == 'rmsprop':
+        optimizer['class'] = optim.RMSprop
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   alpha=args.decay,
+                                   eps=args.epsilon)
+    elif args.optimizer == 'rmspropcentered':
+        optimizer['class'] = optim.RMSprop
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   alpha=args.decay,
+                                   eps=args.epsilon,
+                                   centered=True)
+    else:
+        raise ValueError
+
     # Evaluation of the model provided by the user.
     if args.load_path:
         mdp = Atari(args.name, args.screen_width, args.screen_height,
@@ -145,22 +239,19 @@ def experiment():
         pi = BootPolicy(args.n_approximators, epsilon=epsilon_test)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
+        input_shape = (args.history_length, args.screen_height,
+                       args.screen_width)
         approximator_params = dict(
+            network=Network,
+            optimizer=optimizer,
+            loss=F.mse_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_approximators=args.n_approximators,
-            name='test',
-            load_path=args.load_path,
-            optimizer={'name': args.optimizer,
-                       'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+            n_approximators=args.n_approximators
         )
 
-        approximator = ConvNet
+        approximator = PyTorchApproximator
 
         # Agent
         algorithm_params = dict(
@@ -196,7 +287,9 @@ def experiment():
         policy_name = 'weighted' if args.weighted else 'boot'
 
         # Summary folder
-        folder_name = './logs/' + policy_name + '/' + args.name
+        folder_name = './logs/atari_' + args.name +\
+            '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        pathlib.Path(folder_name).mkdir(parents=True)
 
         # Settings
         if args.debug:
@@ -233,21 +326,19 @@ def experiment():
             pi = WeightedPolicy(args.n_approximators, epsilon=epsilon_random)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
+        input_shape = (args.history_length, args.screen_height,
+                       args.screen_width)
         approximator_params = dict(
+            network=Network,
+            optimizer=optimizer,
+            loss=F.mse_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_approximators=args.n_approximators,
-            folder_name=folder_name,
-            optimizer={'name': args.optimizer,
-                       'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+            n_approximators=args.n_approximators
         )
 
-        approximator = ConvNet
+        approximator = PyTorchApproximator
 
         # Agent
         algorithm_params = dict(
