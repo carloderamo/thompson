@@ -191,6 +191,9 @@ def experiment():
     arg_alg.add_argument("--p-mask", type=float, default=1.)
 
     arg_utils = parser.add_argument_group('Utils')
+    arg_utils.add_argument('--device', type=int, default=None,
+                           help='ID of the GPU device to use. If None, CPU is'
+                                'used.')
     arg_utils.add_argument('--load-path', type=str,
                            help='Path of the model to be loaded.')
     arg_utils.add_argument('--save', action='store_true',
@@ -248,7 +251,8 @@ def experiment():
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_approximators=args.n_approximators
+            n_approximators=args.n_approximators,
+            device=args.device
         )
 
         approximator = PyTorchApproximator
@@ -335,7 +339,8 @@ def experiment():
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_approximators=args.n_approximators
+            n_approximators=args.n_approximators,
+            device=args.device
         )
 
         approximator = PyTorchApproximator
