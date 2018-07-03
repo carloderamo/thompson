@@ -29,26 +29,21 @@ class Network(nn.Module):
         n_input = params['input_shape'][0]
         n_output = params['output_shape'][0]
         self._n_approximators = params['n_approximators']
+        self._use_cuda = params['use_cuda']
+
+        class IdentityGradNorm(torch.autograd.Function):
+            @staticmethod
+            def forward(_, x):
+                return x
+
+            @staticmethod
+            def backward(_, grad_output):
+                return grad_output / self._n_approximators
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-
-        self._h1.weight.register_hook(
-            lambda grad: grad / self._n_approximators)
-        self._h1.bias.register_hook(
-            lambda grad: grad / self._n_approximators)
-
-        self._h2.weight.register_hook(
-            lambda grad: grad / self._n_approximators)
-        self._h2.bias.register_hook(
-            lambda grad: grad / self._n_approximators)
-
-        self._h3.weight.register_hook(
-            lambda grad: grad / self._n_approximators)
-        self._h3.bias.register_hook(
-            lambda grad: grad / self._n_approximators)
-
+        self._h3_id = IdentityGradNorm
         self._h4 = nn.ModuleList([nn.Linear(3136, 512) for _ in range(
             self._n_approximators)])
         self._h5 = nn.ModuleList([nn.Linear(512, n_output) for _ in range(
@@ -70,6 +65,7 @@ class Network(nn.Module):
         h = F.relu(self._h1(state.float() / 255.))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
+        h = self._h3_id.apply(h)
 
         features = list()
         q = list()
@@ -89,7 +85,10 @@ class Network(nn.Module):
             q = q_acted
 
         if mask is not None:
-            q *= torch.from_numpy(mask.astype(np.float32))
+            if self._use_cuda:
+                q *= torch.from_numpy(mask.astype(np.float32)).cuda()
+            else:
+                q *= torch.from_numpy(mask.astype(np.float32))
 
         return q[:, idx] if idx is not None else q
 
@@ -252,7 +251,8 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
-            device=args.device
+            device=args.device,
+            use_cuda=args.device is not None
         )
 
         approximator = PyTorchApproximator
@@ -340,7 +340,8 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
-            device=args.device
+            device=args.device,
+            use_cuda=args.device is not None
         )
 
         approximator = PyTorchApproximator
