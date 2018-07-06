@@ -23,13 +23,13 @@ from policy import BootPolicy, WeightedPolicy
 
 
 class Network(nn.Module):
-    def __init__(self, params):
+    def __init__(self, input_shape, output_shape, n_features, n_approximators):
         super(Network, self).__init__()
 
-        n_input = params['input_shape'][-1]
-        n_output = params['output_shape'][0]
-        n_features = params['n_features']
-        self._n_approximators = params['n_approximators']
+        n_input = input_shape[-1]
+        n_output = output_shape[0]
+        n_features = n_features
+        self._n_approximators = n_approximators
 
         self._h1 = nn.ModuleList([nn.Linear(n_input, n_features) for _ in range(
             self._n_approximators)])
@@ -223,7 +223,6 @@ def experiment(policy, name):
             loss=F.mse_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
-            n_states=n_states,
             n_actions=mdp.info.action_space.n,
             n_features=args.n_features,
             n_approximators=args.n_approximators,
@@ -313,7 +312,6 @@ def experiment(policy, name):
             loss=F.mse_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
-            n_states=n_states,
             n_actions=mdp.info.action_space.n,
             n_features=args.n_features,
             n_approximators=args.n_approximators,

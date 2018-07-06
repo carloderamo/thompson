@@ -23,13 +23,13 @@ from policy import BootPolicy, WeightedPolicy
 
 
 class Network(nn.Module):
-    def __init__(self, params):
+    def __init__(self, input_shape, output_shape, n_approximators, use_cuda):
         super(Network, self).__init__()
 
-        n_input = params['input_shape'][0]
-        n_output = params['output_shape'][0]
-        self._n_approximators = params['n_approximators']
-        self._use_cuda = params['use_cuda']
+        n_input = input_shape[0]
+        n_output = output_shape[0]
+        self._n_approximators = n_approximators
+        self._use_cuda = use_cuda
 
         class IdentityGradNorm(torch.autograd.Function):
             @staticmethod
@@ -420,4 +420,3 @@ if __name__ == '__main__':
 
     out = Parallel(n_jobs=-1)(
         delayed(experiment)() for _ in range(n_experiments))
-    tf.reset_default_graph()
