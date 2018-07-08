@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import pathlib
 import sys
 
@@ -391,10 +392,10 @@ if __name__ == '__main__':
     policy = ['boot', 'weighted']
     name = 'Acrobot-v1'
 
-    n_experiments = 1
+    n_experiments = 10
 
     for p in policy:
-        folder_name = './logs/' + p + '/' + name
+        folder_name = './logs/' + name + '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         pathlib.Path(folder_name).mkdir(parents=True)
         out = Parallel(n_jobs=-1)(
             delayed(experiment)(p, name) for _ in range(n_experiments))
