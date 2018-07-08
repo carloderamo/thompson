@@ -95,7 +95,7 @@ class DQN(Agent):
         q = np.array(self.target_approximator.predict(next_state))
         for i in range(q.shape[1]):
             if absorbing[i]:
-                q[:, i, :] *= 1. - absorbing[i]
+                q[i] *= 1. - absorbing[i]
 
         max_q = np.max(q, axis=2)
 
@@ -138,7 +138,7 @@ class DoubleDQN(DQN):
         tq = np.array(self.target_approximator.predict(next_state))
         for i in range(q.shape[1]):
             if absorbing[i]:
-                tq[:, i, :] *= 1. - absorbing[i]
+                tq[i] *= 1. - absorbing[i]
 
         max_a = np.argmax(q, axis=2)
 
