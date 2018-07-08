@@ -98,6 +98,13 @@ This script can be used to run Atari experiments with DQN.
 
 """
 
+def custom_loss(base=F.smooth_l1_loss):
+    def loss_function(input, target):
+        loss = 0.
+        for i in range(input.shape[-1]):
+            loss += base(input[:, i], target[:, i])
+    return loss_function
+
 
 def print_epoch(epoch):
     print('################################################################')
@@ -246,7 +253,7 @@ def experiment():
         approximator_params = dict(
             network=Network,
             optimizer=optimizer,
-            loss=F.smooth_l1_loss,
+            loss=custom_loss(),
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
@@ -335,7 +342,7 @@ def experiment():
         approximator_params = dict(
             network=Network,
             optimizer=optimizer,
-            loss=F.smooth_l1_loss,
+            loss=custom_loss(),
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
