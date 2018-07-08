@@ -72,6 +72,12 @@ class Network(nn.Module):
 
         return q[:, idx] if idx is not None else q
 
+def custom_loss(input, target):
+    loss = 0.
+    for i in range(input.shape[-1]):
+        loss += F.mse_loss(input[:, i], target[:, i])
+    return loss
+
 
 def print_epoch(epoch):
     print('################################################################')
@@ -84,7 +90,6 @@ def get_stats(dataset, gamma):
     print('J: %f' % J)
 
     return J
-
 
 def experiment(policy, name):
     np.random.seed()
@@ -220,7 +225,7 @@ def experiment(policy, name):
         approximator_params = dict(
             network=Network,
             optimizer=optimizer,
-            loss=F.mse_loss,
+            loss=custom_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
@@ -309,7 +314,7 @@ def experiment(policy, name):
         approximator_params = dict(
             network=Network,
             optimizer=optimizer,
-            loss=F.mse_loss,
+            loss=custom_loss,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
