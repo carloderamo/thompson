@@ -86,6 +86,8 @@ class Network(nn.Module):
             q = q_acted
 
         if mask is not None:
+            assert q.dim() == 2
+            
             if self._use_cuda:
                 q *= torch.from_numpy(mask.astype(np.float32)).cuda()
             else:
