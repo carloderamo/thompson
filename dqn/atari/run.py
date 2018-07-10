@@ -79,15 +79,14 @@ class Network(nn.Module):
 
         if action is not None:
             action = action.long()
-            q_acted = torch.squeeze(
-                q.gather(2, action.repeat(1,
-                                          self._n_approximators).unsqueeze(-1)))
+            q_acted = torch.squeeze(q.gather(2, action.repeat(
+                1, self._n_approximators).unsqueeze(-1)), -1)
 
             q = q_acted
 
         if mask is not None:
             assert q.dim() == 2
-            
+
             if self._use_cuda:
                 q *= torch.from_numpy(mask.astype(np.float32)).cuda()
             else:

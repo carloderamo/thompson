@@ -63,9 +63,8 @@ class Network(nn.Module):
 
         if action is not None:
             action = action.long()
-            q_acted = torch.squeeze(
-                q.gather(2, action.repeat(1,
-                                          self._n_approximators).unsqueeze(-1)))
+            q_acted = torch.squeeze(q.gather(2, action.repeat(
+                1, self._n_approximators).unsqueeze(-1)), -1)
 
             q = q_acted
 
