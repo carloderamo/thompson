@@ -24,13 +24,12 @@ from utils import bootstrapped_loss
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_approximators, device_id):
+    def __init__(self, input_shape, output_shape, n_approximators):
         super(Network, self).__init__()
 
         n_input = input_shape[0]
         n_output = output_shape[0]
         self._n_approximators = n_approximators
-        self._device = device_id
 
         class IdentityGradNorm(torch.autograd.Function):
             @staticmethod
@@ -87,10 +86,7 @@ class Network(nn.Module):
         if mask is not None:
             assert q.dim() == 2
 
-            if self._device:
-                q *= torch.from_numpy(mask.astype(np.float32)).cuda(self._device)
-            else:
-                q *= torch.from_numpy(mask.astype(np.float32))
+            q *= torch.from_numpy(mask.astype(np.float32)).cuda()
 
         return q[:, idx] if idx is not None else q
 
@@ -192,9 +188,8 @@ def experiment():
     arg_alg.add_argument("--p-mask", type=float, default=1.)
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--device', type=int, default=None,
-                           help='ID of the GPU device to use. If None, CPU is'
-                                'used.')
+    arg_utils.add_argument('--use-cuda', action='store_true',
+                           help='Flag specifying whether to use the GPU.')
     arg_utils.add_argument('--load-path', type=str,
                            help='Path of the model to be loaded.')
     arg_utils.add_argument('--save', action='store_true',
@@ -253,8 +248,7 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
-            device=args.device,
-            device_id=args.device
+            use_cuda=args.use_cuda
         )
 
         approximator = PyTorchApproximator
@@ -342,8 +336,7 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
-            device=args.device,
-            device_id=args.device
+            use_cuda=args.use_cuda
         )
 
         approximator = PyTorchApproximator
