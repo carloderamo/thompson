@@ -93,7 +93,7 @@ class DQN(Agent):
 
         """
         q = np.array(self.target_approximator.predict(next_state))
-        for i in range(q.shape[1]):
+        for i in range(q.shape[0]):
             if absorbing[i]:
                 q[i] *= 1. - absorbing[i]
 
@@ -136,7 +136,7 @@ class DoubleDQN(DQN):
     def _next_q(self, next_state, absorbing):
         q = np.array(self.approximator.predict(next_state))
         tq = np.array(self.target_approximator.predict(next_state))
-        for i in range(q.shape[1]):
+        for i in range(q.shape[0]):
             if absorbing[i]:
                 tq[i] *= 1. - absorbing[i]
 
