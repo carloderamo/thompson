@@ -24,13 +24,13 @@ from utils import bootstrapped_loss
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_approximators, use_cuda):
+    def __init__(self, input_shape, output_shape, n_approximators, device_id):
         super(Network, self).__init__()
 
         n_input = input_shape[0]
         n_output = output_shape[0]
         self._n_approximators = n_approximators
-        self._use_cuda = use_cuda
+        self._device = device_id
 
         class IdentityGradNorm(torch.autograd.Function):
             @staticmethod
@@ -87,8 +87,8 @@ class Network(nn.Module):
         if mask is not None:
             assert q.dim() == 2
 
-            if self._use_cuda:
-                q *= torch.from_numpy(mask.astype(np.float32)).cuda()
+            if self._device:
+                q *= torch.from_numpy(mask.astype(np.float32)).cuda(self._device)
             else:
                 q *= torch.from_numpy(mask.astype(np.float32))
 
@@ -254,7 +254,7 @@ def experiment():
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
             device=args.device,
-            use_cuda=args.device is not None
+            device_id=args.device
         )
 
         approximator = PyTorchApproximator
@@ -343,7 +343,7 @@ def experiment():
             n_actions=mdp.info.action_space.n,
             n_approximators=args.n_approximators,
             device=args.device,
-            use_cuda=args.device is not None
+            device_id=args.device
         )
 
         approximator = PyTorchApproximator
