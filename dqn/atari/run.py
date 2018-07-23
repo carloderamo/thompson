@@ -24,7 +24,7 @@ from utils import bootstrapped_loss
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_approximators):
+    def __init__(self, input_shape, output_shape, n_approximators, **kwargs):
         super(Network, self).__init__()
 
         n_input = input_shape[0]
