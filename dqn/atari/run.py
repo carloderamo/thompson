@@ -145,7 +145,7 @@ def experiment():
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
     arg_net.add_argument("--decay", type=float, default=.95)
-    arg_net.add_argument("--epsilon", type=float, default=1e-10)
+    arg_net.add_argument("--epsilon", type=float, default=1e-8)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--weighted", action='store_true')
