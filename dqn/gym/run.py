@@ -25,7 +25,8 @@ from utils import bootstrapped_loss
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, n_approximators):
+    def __init__(self, input_shape, output_shape, n_features, n_approximators,
+                 **kwargs):
         super(Network, self).__init__()
 
         n_input = input_shape[-1]
@@ -203,21 +204,15 @@ def experiment(policy, name):
     # Evaluation of the model provided by the user.
     if args.load_path:
         # MDP
-        if name != 'Taxi':
-            mdp = Gym(name, args.horizon, args.gamma)
-            n_states = None
-            gamma_eval = 1.
-        else:
-            mdp = generate_taxi('../../grid.txt')
-            n_states = mdp.info.observation_space.size[0]
-            gamma_eval = mdp.info.gamma
+        mdp = Gym(name, args.horizon, args.gamma)
+        gamma_eval = 1.
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
         pi = BootPolicy(args.n_approximators, epsilon=epsilon_test)
 
         # Approximator
-        input_shape = (1,) + mdp.info.observation_space.shape
+        input_shape = mdp.info.observation_space.shape
         input_preprocessor = list()
         approximator_params = dict(
             network=Network,
@@ -238,13 +233,11 @@ def experiment(policy, name):
             batch_size=0,
             initial_replay_size=0,
             max_replay_size=0,
-            history_length=1,
             clip_reward=False,
             n_approximators=args.n_approximators,
             train_frequency=1,
             target_update_frequency=1,
-            max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value,
+
             p_mask=args.p_mask
         )
         agent = DoubleDQN(approximator, pi, mdp.info,
@@ -282,14 +275,8 @@ def experiment(policy, name):
             max_steps = args.max_steps
 
         # MDP
-        if name != 'Taxi':
-            mdp = Gym(name, args.horizon, args.gamma)
-            n_states = None
-            gamma_eval = 1.
-        else:
-            mdp = generate_taxi('../../grid.txt')
-            n_states = mdp.info.observation_space.size[0]
-            gamma_eval = mdp.info.gamma
+        mdp = Gym(name, args.horizon, args.gamma)
+        gamma_eval = 1.
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -306,7 +293,7 @@ def experiment(policy, name):
             raise ValueError
 
         # Approximator
-        input_shape = (1,) + mdp.info.observation_space.shape
+        input_shape = mdp.info.observation_space.shape
         input_preprocessor = list()
         approximator_params = dict(
             network=Network,
@@ -327,13 +314,10 @@ def experiment(policy, name):
             batch_size=args.batch_size,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
-            history_length=args.history_length,
             clip_reward=False,
             n_approximators=args.n_approximators,
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
-            max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value,
             p_mask=args.p_mask
         )
 

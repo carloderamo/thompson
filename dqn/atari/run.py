@@ -24,12 +24,14 @@ from utils import bootstrapped_loss
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_approximators, **kwargs):
+    def __init__(self, input_shape, output_shape, n_approximators, use_cuda,
+                 **kwargs):
         super(Network, self).__init__()
 
         n_input = input_shape[0]
         n_output = output_shape[0]
         self._n_approximators = n_approximators
+        self._use_cuda = use_cuda
 
         class IdentityGradNorm(torch.autograd.Function):
             @staticmethod
@@ -86,7 +88,10 @@ class Network(nn.Module):
         if mask is not None:
             assert q.dim() == 2
 
-            q *= torch.from_numpy(mask.astype(np.float32)).cuda()
+            if self._use_cuda:
+                q *= torch.from_numpy(mask.astype(np.float32)).cuda()
+            else:
+                q *= torch.from_numpy(mask.astype(np.float32))
 
         return q[:, idx] if idx is not None else q
 
@@ -231,7 +236,8 @@ def experiment():
     # Evaluation of the model provided by the user.
     if args.load_path:
         mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=False)
+                    ends_at_life=False, history_length=args.history_length,
+                    max_no_op_actions=args.max_no_op_actions)
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
@@ -258,15 +264,11 @@ def experiment():
             batch_size=args.batch_size,
             initial_replay_size=1,
             max_replay_size=1,
-            history_length=args.history_length,
             clip_reward=True,
             train_frequency=args.train_frequency,
             n_approximators=args.n_approximators,
             target_update_frequency=args.target_update_frequency,
-            max_no_op_actions=4,
-            no_op_action_value=args.no_op_action_value,
-            p_mask=args.p_mask,
-            dtype=np.uint8,
+            p_mask=args.p_mask
         )
         agent = DoubleDQN(approximator, pi, mdp.info,
                           approximator_params=approximator_params,
@@ -311,7 +313,8 @@ def experiment():
 
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+                    ends_at_life=True, history_length=args.history_length,
+                    max_no_op_actions=args.max_no_op_actions)
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -346,15 +349,11 @@ def experiment():
             batch_size=args.batch_size,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
-            history_length=args.history_length,
             clip_reward=True,
             train_frequency=args.train_frequency,
             n_approximators=args.n_approximators,
             target_update_frequency=target_update_frequency,
-            max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value,
-            p_mask=args.p_mask,
-            dtype=np.uint8,
+            p_mask=args.p_mask
         )
 
         agent = DoubleDQN(approximator, pi, mdp.info,
