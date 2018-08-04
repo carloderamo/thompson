@@ -172,24 +172,21 @@ def experiment():
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=1,
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=1e6,
                          help='Number of steps until the exploration rate stops'
                               'decreasing.')
-    arg_alg.add_argument("--initial-exploration-rate", type=float, default=0.,
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
                          help='Initial value of the exploration rate.')
-    arg_alg.add_argument("--final-exploration-rate", type=float, default=0.,
+    arg_alg.add_argument("--final-exploration-rate", type=float, default=.01,
                          help='Final value of the exploration rate. When it'
                               'reaches this values, it stays constant.')
     arg_alg.add_argument("--test-exploration-rate", type=float, default=.005,
                          help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
-    arg_alg.add_argument("--max-no-op-actions", type=int, default=8,
+    arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
                          help='Maximum number of no-op action performed at the'
-                              'beginning of the episodes. The minimum number is'
-                              'history_length.')
-    arg_alg.add_argument("--no-op-action-value", type=int, default=0,
-                         help='Value of the no-op action.')
+                              'beginning of the episodes.')
     arg_alg.add_argument("--p-mask", type=float, default=1.)
 
     arg_utils = parser.add_argument_group('Utils')

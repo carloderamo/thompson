@@ -34,13 +34,24 @@ class ReplayMemory(object):
 
         self._current_sample_idx = stop
 
-        return np.stack([np.array(self._states[i]) for i in self._sample_idxs[start:stop]]),\
-            np.array([self._actions[i] for i in self._sample_idxs[start:stop]]),\
-            np.array([self._rewards[i] for i in self._sample_idxs[start:stop]]),\
-            np.stack([np.array(self._next_states[i]) for i in self._sample_idxs[start:stop]]),\
-            np.array([self._absorbing[i] for i in self._sample_idxs[start:stop]]),\
-            np.array([self._last[i] for i in self._sample_idxs[start:stop]]),\
-            np.array([self._mask[i] for i in self._sample_idxs[start:stop]])
+        s = list()
+        a = list()
+        r = list()
+        ss = list()
+        ab = list()
+        last = list()
+        mask = list()
+        for i in self._sample_idxs[start:stop]:
+            s.append(np.array(self._states[i]))
+            a.append(self._actions[i])
+            r.append(self._rewards[i])
+            ss.append(np.array(self._next_states[i]))
+            ab.append(self._absorbing[i])
+            last.append(self._last[i])
+            mask.append(self._mask[i])
+
+        return np.stack(s), np.array(a), np.array(r), np.stack(ss),\
+            np.array(ab), np.array(last), np.array(mask)
 
     def reset(self):
         self._idx = 0
