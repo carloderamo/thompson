@@ -50,7 +50,7 @@ class ReplayMemory(object):
             last.append(self._last[i])
             mask.append(self._mask[i])
 
-        return np.stack(s), np.array(a), np.array(r), np.stack(ss),\
+        return np.array(s), np.array(a), np.array(r), np.array(ss),\
             np.array(ab), np.array(last), np.array(mask)
 
     def reset(self):

@@ -24,7 +24,6 @@ class DQN(Agent):
         self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
 
         self._n_updates = 0
-        self._no_op_actions = None
 
         apprx_params_train = deepcopy(approximator_params)
         apprx_params_target = deepcopy(approximator_params)
