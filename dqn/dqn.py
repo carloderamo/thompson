@@ -37,8 +37,6 @@ class DQN(Agent):
 
         super(DQN, self).__init__(policy, mdp_info)
 
-        self.policy._n_approximators = 1
-
     def fit(self, dataset):
         mask = np.random.binomial(1, self._p_mask,
                                   size=(len(dataset),
