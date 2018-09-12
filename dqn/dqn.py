@@ -37,6 +37,8 @@ class DQN(Agent):
 
         super(DQN, self).__init__(policy, mdp_info)
 
+        self.policy._n_approximators = 1
+
     def fit(self, dataset):
         mask = np.random.binomial(1, self._p_mask,
                                   size=(len(dataset),
@@ -121,3 +123,20 @@ class DoubleDQN(DQN):
                 double_q[i, j] = tq[i, j, max_a[i, j]]
 
         return double_q
+
+
+class WeightedDQN(DQN):
+    def _next_q(self, next_state, absorbing):
+        q = np.array(self.target_approximator.predict(next_state))
+        for i in range(q.shape[0]):
+            if absorbing[i]:
+                q[i] *= 1. - absorbing[i]
+
+        max_q = np.max(q, axis=2)
+        idx = np.random.choice(self._n_approximators)
+        max_q[:, 0] = max_q[:, idx]
+
+        return max_q
+
+    def episode_start(self):
+        self.policy.set_idx(0)
