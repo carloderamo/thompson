@@ -18,7 +18,7 @@ from mushroom.utils.parameters import LinearDecayParameter, Parameter
 
 sys.path.append('..')
 sys.path.append('../..')
-from dqn import DoubleDQN
+from dqn import DQN, DoubleDQN, WeightedDQN
 from policy import BootPolicy, WeightedPolicy
 from utils import bootstrapped_loss
 
@@ -153,6 +153,8 @@ def experiment():
     arg_net.add_argument("--epsilon", type=float, default=1e-8)
 
     arg_alg = parser.add_argument_group('Algorithm')
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
+                         default='ddqn')
     arg_alg.add_argument("--weighted", action='store_true')
     arg_alg.add_argument("--n-approximators", type=int, default=10,
                          help="Number of approximators used in the ensemble for"
@@ -267,9 +269,19 @@ def experiment():
             target_update_frequency=args.target_update_frequency,
             p_mask=args.p_mask
         )
-        agent = DoubleDQN(approximator, pi, mdp.info,
-                          approximator_params=approximator_params,
-                          **algorithm_params)
+        
+        if args.algorithm == 'dqn':
+            agent = DQN(approximator, pi, mdp.info,
+                        approximator_params=approximator_params,
+                        **algorithm_params)
+        elif args.algorithm == 'ddqn':
+            agent = DoubleDQN(approximator, pi, mdp.info,
+                              approximator_params=approximator_params,
+                              **algorithm_params)
+        elif args.algorithm == 'wdqn':
+            agent = WeightedDQN(approximator, pi, mdp.info,
+                                approximator_params=approximator_params,
+                                **algorithm_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
@@ -353,9 +365,18 @@ def experiment():
             p_mask=args.p_mask
         )
 
-        agent = DoubleDQN(approximator, pi, mdp.info,
-                          approximator_params=approximator_params,
-                          **algorithm_params)
+        if args.algorithm == 'dqn':
+            agent = DQN(approximator, pi, mdp.info,
+                        approximator_params=approximator_params,
+                        **algorithm_params)
+        elif args.algorithm == 'ddqn':
+            agent = DoubleDQN(approximator, pi, mdp.info,
+                              approximator_params=approximator_params,
+                              **algorithm_params)
+        elif args.algorithm == 'wdqn':
+            agent = WeightedDQN(approximator, pi, mdp.info,
+                                approximator_params=approximator_params,
+                                **algorithm_params)
 
         # Algorithm
         core = Core(agent, mdp)
@@ -371,7 +392,8 @@ def experiment():
             agent.approximator.model.save()
 
         # Evaluate initial policy
-        pi.set_eval(True)
+        if args.algorithm != 'wdqn':
+            pi.set_eval(True)
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(False)
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
@@ -394,7 +416,8 @@ def experiment():
 
             print('- Evaluation:')
             # evaluation step
-            pi.set_eval(True)
+            if args.algorithm != 'wdqn':
+                pi.set_eval(True)
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(False)
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
