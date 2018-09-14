@@ -128,9 +128,7 @@ class WeightedDQN(DQN):
         q = np.array(self.target_approximator.predict(next_state))
         max_q = np.zeros(q.shape[:-1])
         for i in range(q.shape[0]):
-            if absorbing[i]:
-                max_q[i] *= 0.
-            else:
+            if not absorbing[i]:
                 max_idx = q[i, 1:].argmax(-1)
                 count = np.zeros(q.shape[-1])
                 idx, c = np.unique(max_idx, return_counts=True)
