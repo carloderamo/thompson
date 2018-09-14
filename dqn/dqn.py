@@ -129,7 +129,7 @@ class WeightedDQN(DQN):
         max_q = np.zeros(q.shape[:-1])
         for i in range(q.shape[0]):
             if absorbing[i]:
-                max_q[i] *= 0.
+                q[i] *= 0.
             else:
                 max_idx = q[i, 1:].argmax(-1)
                 count = np.zeros(q.shape[-1])
