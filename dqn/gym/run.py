@@ -134,7 +134,7 @@ def experiment(name):
     arg_alg.add_argument("--target-update-frequency", type=int, default=100,
                          help='Number of collected samples before each update'
                               'of the target network.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=1000,
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=2000,
                          help='Number of learning step before each evaluation.'
                               'This number represents an epoch.')
     arg_alg.add_argument("--train-frequency", type=int, default=1,
