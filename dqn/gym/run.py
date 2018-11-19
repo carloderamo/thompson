@@ -19,18 +19,18 @@ from mushroom.utils.parameters import LinearDecayParameter, Parameter
 sys.path.append('..')
 sys.path.append('../..')
 from dqn import DQN, DoubleDQN, WeightedDQN
-from policy import BootPolicy, WeightedPolicy
+from policy import BootPolicy
 from utils import bootstrapped_loss
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, n_approximators,
+    def __init__(self, input_shape, output_shape, n_approximators,
                  **kwargs):
         super(Network, self).__init__()
 
         n_input = input_shape[-1]
         n_output = output_shape[0]
-        n_features = n_features
+        n_features = 80
         self._n_approximators = n_approximators
 
         self._h1 = nn.ModuleList([nn.Linear(n_input, n_features) for _ in range(
@@ -88,7 +88,7 @@ def get_stats(dataset, gamma):
 
     return J
 
-def experiment(policy, name):
+def experiment(name):
     np.random.seed()
 
     # Argument parser
@@ -105,7 +105,6 @@ def experiment(policy, name):
                          help='Max size of the replay memory.')
 
     arg_net = parser.add_argument_group('Deep Q-Network')
-    arg_net.add_argument("--n-features", type=int, default=80)
     arg_net.add_argument("--optimizer",
                          choices=['adadelta',
                                   'adam',
@@ -113,18 +112,18 @@ def experiment(policy, name):
                                   'rmspropcentered'],
                          default='adam',
                          help='Name of the optimizer to use to learn.')
-    arg_net.add_argument("--learning-rate", type=float, default=.0001,
+    arg_net.add_argument("--learning-rate", type=float, default=.001,
                          help='Learning rate value of the optimizer. Only used'
                               'in rmspropcentered')
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmspropcentered')
-    arg_net.add_argument("--epsilon", type=float, default=.01,
+    arg_net.add_argument("--epsilon", type=float, default=1e-8,
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
-                         default='ddqn')
+                         default='dqn')
     arg_alg.add_argument("--n-approximators", type=int, default=10,
                          help="Number of approximators used in the ensemble for"
                               "Averaged DQN.")
@@ -143,12 +142,12 @@ def experiment(policy, name):
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=1,
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=50000,
                          help='Number of steps until the exploration rate stops'
                               'decreasing.')
-    arg_alg.add_argument("--initial-exploration-rate", type=float, default=0.,
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
                          help='Initial value of the exploration rate.')
-    arg_alg.add_argument("--final-exploration-rate", type=float, default=0.,
+    arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
                          help='Final value of the exploration rate. When it'
                               'reaches this values, it stays constant.')
     arg_alg.add_argument("--test-exploration-rate", type=float, default=0.,
@@ -179,6 +178,13 @@ def experiment(policy, name):
 
     args = parser.parse_args()
 
+    # MDP
+    if name == 'puddle':
+        mdp = PuddleWorld(horizon=1000)
+    else:
+        mdp = Gym(name, args.horizon, args.gamma)
+    gamma_eval = args.gamma
+
     scores = list()
 
     optimizer = dict()
@@ -204,10 +210,6 @@ def experiment(policy, name):
 
     # Evaluation of the model provided by the user.
     if args.load_path:
-        # MDP
-        mdp = Gym(name, args.horizon, args.gamma)
-        gamma_eval = 1.
-
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
         pi = BootPolicy(args.n_approximators, epsilon=epsilon_test)
@@ -222,7 +224,6 @@ def experiment(policy, name):
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=args.n_features,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor
         )
@@ -284,10 +285,6 @@ def experiment(policy, name):
             evaluation_frequency = args.evaluation_frequency
             max_steps = args.max_steps
 
-        # MDP
-        mdp = Gym(name, args.horizon, args.gamma)
-        gamma_eval = 1.
-
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
                                        min_value=args.final_exploration_rate,
@@ -295,12 +292,7 @@ def experiment(policy, name):
         epsilon_test = Parameter(value=args.test_exploration_rate)
         epsilon_random = Parameter(value=1.)
 
-        if policy == 'boot':
-            pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
-        elif policy == 'weighted':
-            pi = WeightedPolicy(args.n_approximators, epsilon=epsilon_random)
-        else:
-            raise ValueError
+        pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
 
         # Approximator
         input_shape = mdp.info.observation_space.shape
@@ -312,7 +304,6 @@ def experiment(policy, name):
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=args.n_features,
             n_approximators=args.n_approximators,
             input_preprocessor=input_preprocessor
         )
@@ -395,15 +386,13 @@ def experiment(policy, name):
 
 
 if __name__ == '__main__':
-    policy = ['boot', 'weighted']
-    name = 'Acrobot-v1'
+    name = 'puddle'
 
-    n_experiments = 10
+    n_experiments = 100
 
-    for p in policy:
-        folder_name = './logs/' + name + '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        pathlib.Path(folder_name).mkdir(parents=True)
-        out = Parallel(n_jobs=-1)(
-            delayed(experiment)(p, name) for _ in range(n_experiments))
+    folder_name = './logs/' + name + '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    pathlib.Path(folder_name).mkdir(parents=True)
+    out = Parallel(n_jobs=-1)(
+        delayed(experiment)(name) for _ in range(n_experiments))
 
-        np.save(folder_name + '/scores.npy', out)
+    np.save(folder_name + '/scores.npy', out)
