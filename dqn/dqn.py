@@ -129,16 +129,11 @@ class WeightedDQN(DQN):
         max_q = np.zeros(q.shape[:-1])
         for i in range(q.shape[0]):
             if not absorbing[i]:
-                max_idx = q[i, 1:].argmax(-1)
+                max_idx = q[i].argmax(-1)
                 count = np.zeros(q.shape[-1])
                 idx, c = np.unique(max_idx, return_counts=True)
                 count[idx] = c
-                w = count / (self._n_approximators - 1)
-                max_q[i, 0] = q[i, 0] @ w
-
-                max_q[i, 1:] = q[i, 1:].max(-1)
+                w = count / self._n_approximators
+                max_q[i] = q[i] @ w
 
         return max_q
-
-    def episode_start(self):
-        self.policy.set_idx(0)

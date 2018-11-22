@@ -142,7 +142,7 @@ def experiment(name):
                               'neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=50000,
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=40000,
                          help='Number of steps until the exploration rate stops'
                               'decreasing.')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
@@ -163,7 +163,7 @@ def experiment(name):
     arg_alg.add_argument("--p-mask", type=float, default=1.)
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--load-path', type=str,
+    arg_utils.add_argument('--load', type=str,
                            help='Path of the model to be loaded.')
     arg_utils.add_argument('--save', action='store_true',
                            help='Flag specifying whether to save the model.')
@@ -180,7 +180,9 @@ def experiment(name):
 
     # MDP
     if name == 'puddle':
-        mdp = PuddleWorld(horizon=1000)
+        mdp = PuddleWorld(horizon=args.horizon, gamma=args.gamma, start=[.2, .2],
+                          noise_reward=0, reward_goal=5., puddle_center=[[.5, .5]],
+                          puddle_width=[[.15, .15]])
     else:
         mdp = Gym(name, args.horizon, args.gamma)
     gamma_eval = args.gamma
@@ -208,179 +210,122 @@ def experiment(name):
     else:
         raise ValueError
 
-    # Evaluation of the model provided by the user.
-    if args.load_path:
-        # Policy
-        epsilon_test = Parameter(value=args.test_exploration_rate)
-        pi = BootPolicy(args.n_approximators, epsilon=epsilon_test)
+    # DQN learning run
 
-        # Approximator
-        input_shape = mdp.info.observation_space.shape
-        input_preprocessor = list()
-        approximator_params = dict(
-            network=Network,
-            optimizer=optimizer,
-            loss=bootstrapped_loss(F.mse_loss),
-            input_shape=input_shape,
-            output_shape=(mdp.info.action_space.n,),
-            n_actions=mdp.info.action_space.n,
-            n_approximators=args.n_approximators,
-            input_preprocessor=input_preprocessor
-        )
-
-        approximator = PyTorchApproximator
-
-        # Agent
-        algorithm_params = dict(
-            batch_size=0,
-            initial_replay_size=0,
-            max_replay_size=0,
-            clip_reward=False,
-            n_approximators=args.n_approximators,
-            train_frequency=1,
-            target_update_frequency=1,
-
-            p_mask=args.p_mask
-        )
-        if args.algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.info,
-                        approximator_params=approximator_params,
-                        **algorithm_params)
-        elif args.algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.info,
-                              approximator_params=approximator_params,
-                              **algorithm_params)
-        elif args.algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.info,
-                                approximator_params=approximator_params,
-                                **algorithm_params)
-
-        # Algorithm
-        core_test = Core(agent, mdp)
-
-        # Evaluate model
-        pi.set_eval(True)
-        dataset = core_test.evaluate(n_steps=args.test_samples,
-                                     render=args.render,
-                                     quiet=args.quiet)
-        get_stats(dataset, gamma_eval)
+    # Settings
+    if args.debug:
+        initial_replay_size = 50
+        max_replay_size = 500
+        train_frequency = 5
+        target_update_frequency = 10
+        test_samples = 20
+        evaluation_frequency = 50
+        max_steps = 1000
     else:
-        # DQN learning run
+        initial_replay_size = args.initial_replay_size
+        max_replay_size = args.max_replay_size
+        train_frequency = args.train_frequency
+        target_update_frequency = args.target_update_frequency
+        test_samples = args.test_samples
+        evaluation_frequency = args.evaluation_frequency
+        max_steps = args.max_steps
 
-        # Settings
-        if args.debug:
-            initial_replay_size = 50
-            max_replay_size = 500
-            train_frequency = 5
-            target_update_frequency = 10
-            test_samples = 20
-            evaluation_frequency = 50
-            max_steps = 1000
-        else:
-            initial_replay_size = args.initial_replay_size
-            max_replay_size = args.max_replay_size
-            train_frequency = args.train_frequency
-            target_update_frequency = args.target_update_frequency
-            test_samples = args.test_samples
-            evaluation_frequency = args.evaluation_frequency
-            max_steps = args.max_steps
+    # Policy
+    epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
+                                   min_value=args.final_exploration_rate,
+                                   n=args.final_exploration_frame)
+    epsilon_test = Parameter(value=args.test_exploration_rate)
+    epsilon_random = Parameter(value=1.)
 
-        # Policy
-        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
-                                       min_value=args.final_exploration_rate,
-                                       n=args.final_exploration_frame)
-        epsilon_test = Parameter(value=args.test_exploration_rate)
-        epsilon_random = Parameter(value=1.)
+    pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
 
-        pi = BootPolicy(args.n_approximators, epsilon=epsilon_random)
+    # Approximator
+    input_shape = mdp.info.observation_space.shape
+    input_preprocessor = list()
+    approximator_params = dict(
+        network=Network,
+        optimizer=optimizer,
+        loss=bootstrapped_loss(F.mse_loss),
+        input_shape=input_shape,
+        output_shape=(mdp.info.action_space.n,),
+        n_actions=mdp.info.action_space.n,
+        n_approximators=args.n_approximators,
+        input_preprocessor=input_preprocessor
+    )
 
-        # Approximator
-        input_shape = mdp.info.observation_space.shape
-        input_preprocessor = list()
-        approximator_params = dict(
-            network=Network,
-            optimizer=optimizer,
-            loss=bootstrapped_loss(F.mse_loss),
-            input_shape=input_shape,
-            output_shape=(mdp.info.action_space.n,),
-            n_actions=mdp.info.action_space.n,
-            n_approximators=args.n_approximators,
-            input_preprocessor=input_preprocessor
-        )
+    approximator = PyTorchApproximator
 
-        approximator = PyTorchApproximator
+    # Agent
+    algorithm_params = dict(
+        batch_size=args.batch_size,
+        initial_replay_size=initial_replay_size,
+        max_replay_size=max_replay_size,
+        clip_reward=False,
+        n_approximators=args.n_approximators,
+        train_frequency=train_frequency,
+        target_update_frequency=target_update_frequency,
+        p_mask=args.p_mask
+    )
 
-        # Agent
-        algorithm_params = dict(
-            batch_size=args.batch_size,
-            initial_replay_size=initial_replay_size,
-            max_replay_size=max_replay_size,
-            clip_reward=False,
-            n_approximators=args.n_approximators,
-            train_frequency=train_frequency,
-            target_update_frequency=target_update_frequency,
-            p_mask=args.p_mask
-        )
+    if args.algorithm == 'dqn':
+        agent = DQN(approximator, pi, mdp.info,
+                    approximator_params=approximator_params,
+                    **algorithm_params)
+    elif args.algorithm == 'ddqn':
+        agent = DoubleDQN(approximator, pi, mdp.info,
+                          approximator_params=approximator_params,
+                          **algorithm_params)
+    elif args.algorithm == 'wdqn':
+        agent = WeightedDQN(approximator, pi, mdp.info,
+                            approximator_params=approximator_params,
+                            **algorithm_params)
 
-        if args.algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.info,
-                        approximator_params=approximator_params,
-                        **algorithm_params)
-        elif args.algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.info,
-                              approximator_params=approximator_params,
-                              **algorithm_params)
-        elif args.algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.info,
-                                approximator_params=approximator_params,
-                                **algorithm_params)
+    # Algorithm
+    core = Core(agent, mdp)
 
-        # Algorithm
-        core = Core(agent, mdp)
-        core_test = Core(agent, mdp)
+    # RUN
 
-        # RUN
+    # Fill replay memory with random dataset
+    print_epoch(0)
+    core.learn(n_steps=initial_replay_size,
+               n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
-        # Fill replay memory with random dataset
-        print_epoch(0)
-        core.learn(n_steps=initial_replay_size,
-                   n_steps_per_fit=initial_replay_size, quiet=args.quiet)
+    if args.save:
+        np.save(folder_name + '/weights.npy',
+                agent.approximator.get_weights())
+
+    if args.load:
+        weights = np.load(args.load)
+        agent.approximator.set_weights(weights)
+
+    # Evaluate initial policy
+    pi.set_eval(True)
+    pi.set_epsilon(epsilon_test)
+    dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                            quiet=args.quiet)
+    scores.append(get_stats(dataset, gamma_eval))
+
+    for n_epoch in range(1, max_steps // evaluation_frequency + 1):
+        print_epoch(n_epoch)
+        print('- Learning:')
+        pi.set_eval(False)
+        pi.set_epsilon(epsilon)
+        # learning step
+        core.learn(n_steps=evaluation_frequency,
+                   n_steps_per_fit=train_frequency,
+                   quiet=args.quiet)
 
         if args.save:
-            agent.approximator.model.save()
+            np.save(folder_name + '/weights.npy',
+                    agent.approximator.get_weights())
 
-        # Evaluate initial policy
-        if args.algorithm != 'wdqn':
-            pi.set_eval(True)
+        print('- Evaluation:')
+        # evaluation step
+        pi.set_eval(True)
         pi.set_epsilon(epsilon_test)
-        dataset = core_test.evaluate(n_steps=test_samples,
-                                     render=args.render,
-                                     quiet=args.quiet)
+        dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                                quiet=args.quiet)
         scores.append(get_stats(dataset, gamma_eval))
-
-        for n_epoch in range(1, max_steps // evaluation_frequency + 1):
-            print_epoch(n_epoch)
-            print('- Learning:')
-            pi.set_eval(False)
-            pi.set_epsilon(epsilon)
-            # learning step
-            core.learn(n_steps=evaluation_frequency,
-                       n_steps_per_fit=train_frequency,
-                       quiet=args.quiet)
-
-            if args.save:
-                agent.approximator.model.save()
-
-            print('- Evaluation:')
-            # evaluation step
-            core_test.reset()
-            if args.algorithm != 'wdqn':
-                pi.set_eval(True)
-            pi.set_epsilon(epsilon_test)
-            dataset = core_test.evaluate(n_steps=test_samples,
-                                         render=args.render,
-                                         quiet=args.quiet)
-            scores.append(get_stats(dataset, gamma_eval))
 
     return scores
 
@@ -388,7 +333,7 @@ def experiment(name):
 if __name__ == '__main__':
     name = 'puddle'
 
-    n_experiments = 100
+    n_experiments = 1
 
     folder_name = './logs/' + name + '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
