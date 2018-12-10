@@ -124,7 +124,7 @@ def experiment(name):
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
                          default='dqn')
-    arg_alg.add_argument("--n-approximators", type=int, default=10,
+    arg_alg.add_argument("--n-approximators", type=int, default=100,
                          help="Number of approximators used in the ensemble for"
                               "Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=100,
@@ -134,15 +134,15 @@ def experiment(name):
     arg_alg.add_argument("--target-update-frequency", type=int, default=100,
                          help='Number of collected samples before each update'
                               'of the target network.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=2000,
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=1000,
                          help='Number of learning step before each evaluation.'
                               'This number represents an epoch.')
     arg_alg.add_argument("--train-frequency", type=int, default=1,
                          help='Number of learning steps before each fit of the'
                               'neural network.')
-    arg_alg.add_argument("--max-steps", type=int, default=50000,
+    arg_alg.add_argument("--max-steps", type=int, default=20000,
                          help='Total number of learning steps.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=40000,
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=10000,
                          help='Number of steps until the exploration rate stops'
                               'decreasing.')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
@@ -181,8 +181,8 @@ def experiment(name):
     # MDP
     if name == 'puddle':
         mdp = PuddleWorld(horizon=args.horizon, gamma=args.gamma, start=[.2, .2],
-                          noise_reward=0, reward_goal=5., puddle_center=[[.5, .5]],
-                          puddle_width=[[.15, .15]])
+                          noise_reward=1, reward_goal=5., puddle_center=[],
+                          puddle_width=[])
     else:
         mdp = Gym(name, args.horizon, args.gamma)
     gamma_eval = args.gamma
@@ -333,7 +333,7 @@ def experiment(name):
 if __name__ == '__main__':
     name = 'puddle'
 
-    n_experiments = 1
+    n_experiments = 10
 
     folder_name = './logs/' + name + '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
